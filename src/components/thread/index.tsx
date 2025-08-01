@@ -51,6 +51,8 @@ import { getJwtToken, GetUserId } from "@/services/authService";
 import { GenericInterruptView } from "./messages/generic-interrupt";
 import { NonAgentFlowReopenButton } from "./NonAgentFlowReopenButton";
 import { updateThreadWithMessage } from "@/utils/thread-storage";
+import { EnhancedThreadLayout } from "./EnhancedThreadLayout";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -137,6 +139,19 @@ function isDisplayableMessage(m: Message) {
 }
 
 export function Thread() {
+  console.log("Thread component rendering");
+  // Use feature flag to switch between layouts
+  if (isFeatureEnabled("ENHANCED_LAYOUT")) {
+    return <EnhancedThreadLayout />;
+  }
+
+  // Fallback to legacy layout
+  return <LegacyThread />;
+}
+
+// Legacy Thread component (kept for reference and fallback)
+export function LegacyThread() {
+  console.log("LegacyThread component rendering");
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
 
@@ -275,11 +290,7 @@ export function Thread() {
       optimisticValues: (prev: any) => ({
         ...prev,
         context,
-        messages: [
-          ...(prev.messages ?? []),
-          ...toolMessages,
-          newHumanMessage,
-        ],
+        messages: [...(prev.messages ?? []), ...toolMessages, newHumanMessage],
       }),
     };
 
@@ -290,23 +301,29 @@ export function Thread() {
         assistant_id: assistantId,
         graph_id: assistantId,
         created_at: new Date().toISOString(),
-        user_id: userId || 'anonymous',
+        user_id: userId || "anonymous",
       };
     }
 
     console.log("Submitting with options:", submitOptions);
 
     // Store thread information locally for fallback
-    const messageText = typeof newHumanMessage.content === 'string'
-      ? newHumanMessage.content
-      : Array.isArray(newHumanMessage.content)
-        ? newHumanMessage.content.find(c => c.type === 'text')?.text || ''
-        : '';
+    const messageText =
+      typeof newHumanMessage.content === "string"
+        ? newHumanMessage.content
+        : Array.isArray(newHumanMessage.content)
+          ? newHumanMessage.content.find((c) => c.type === "text")?.text || ""
+          : "";
 
     if (messageText && assistantId) {
       // Update local storage with thread info
       if (threadId) {
-        updateThreadWithMessage(threadId, messageText, assistantId, userId ? String(userId) : undefined);
+        updateThreadWithMessage(
+          threadId,
+          messageText,
+          assistantId,
+          userId ? String(userId) : undefined,
+        );
       } else {
         // For new threads, we'll update after getting the thread ID from onThreadId callback
         console.log("Will update local storage after thread ID is assigned");
@@ -486,21 +503,20 @@ export function Thread() {
                   {messages
                     .filter(isDisplayableMessage)
                     .map((message, index) =>
-                      message.type === "human"
-                        ? (
-                            <HumanMessage
-                              key={message.id || `${message.type}-${index}`}
-                              message={message}
-                              isLoading={isLoading}
-                            />
-                          )
-                        : (<AssistantMessage
-                              key={message.id || `${message.type}-${index}`}
-                              message={message}
-                              isLoading={isLoading}
-                              handleRegenerate={handleRegenerate}
-                            />
-                          ),
+                      message.type === "human" ? (
+                        <HumanMessage
+                          key={message.id || `${message.type}-${index}`}
+                          message={message}
+                          isLoading={isLoading}
+                        />
+                      ) : (
+                        <AssistantMessage
+                          key={message.id || `${message.type}-${index}`}
+                          message={message}
+                          isLoading={isLoading}
+                          handleRegenerate={handleRegenerate}
+                        />
+                      ),
                     )}
                   {/* Special rendering case where there are no AI/tool messages, but there is an interrupt. */}
                   {hasNoAIOrToolMessages && !!stream.interrupt && (
