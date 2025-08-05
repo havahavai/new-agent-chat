@@ -8,6 +8,11 @@ import React, {
 } from "react";
 import { useStream } from "@/lib/langgraph-index";
 import { type Message } from "@langchain/langgraph-sdk";
+import {
+  uiMessageReducer,
+  isUIMessage,
+  isRemoveUIMessage,
+} from "@langchain/langgraph-sdk/react-ui";
 
 import { useQueryState } from "nuqs";
 import { Input } from "@/components/ui/input";
@@ -76,6 +81,67 @@ const StreamSession = ({
     apiKey: apiKey ?? undefined,
     assistantId,
     threadId: threadId ?? null,
+    onCustomEvent: (event: any, options: any) => {
+      console.log("🔍 Custom event received:", event);
+      console.log("🔍 Event type:", event.type);
+      console.log("🔍 Is UI message:", isUIMessage(event));
+      console.log("🔍 Is remove UI message:", isRemoveUIMessage(event));
+
+      options.mutate((prev: any) => {
+        console.log("🔍 Current UI state before reducer:", prev.ui);
+        console.log("🔍 UI array length before reducer:", prev.ui?.length || 0);
+        console.log("🔍 Current messages length:", prev.messages?.length || 0);
+
+        // 1. Preserve all UI values - always preserve UI state
+        let ui = prev.ui ?? [];
+
+        // Only apply UI reducer if it's not a remove event
+        if (!isRemoveUIMessage(event)) {
+          ui = uiMessageReducer(ui, event);
+        }
+
+        // 2. Enhanced message preservation during custom events
+        let messages = prev.messages ?? [];
+
+        // Always preserve existing messages during custom events
+        if (messages.length > 0) {
+          console.log(
+            "🔍 Preserving existing messages during custom event:",
+            messages.length,
+          );
+        }
+
+        // ENHANCED: Handle duplicate messages to prevent React key conflicts
+        const uniqueMessages = messages.reduce((acc: any[], message: any) => {
+          if (message.id) {
+            const existingIndex = acc.findIndex(
+              (m: any) => m.id === message.id,
+            );
+            if (existingIndex !== -1) {
+              // Update existing message with latest content
+              acc[existingIndex] = message;
+            } else {
+              acc.push(message);
+            }
+          } else {
+            // For messages without ID, add them with a temporary ID
+            acc.push({
+              ...message,
+              id: `temp-${Date.now()}-${Math.random()}`,
+            });
+          }
+          return acc;
+        }, []);
+
+        messages = uniqueMessages;
+
+        console.log("🔍 UI state after reducer:", ui);
+        console.log("🔍 UI array length after reducer:", ui?.length || 0);
+        console.log("🔍 Messages length after preservation:", messages.length);
+
+        return { ...prev, ui, messages };
+      });
+    },
     onThreadId: (id: string) => {
       console.log("New thread ID created:", id);
       setThreadId(id);

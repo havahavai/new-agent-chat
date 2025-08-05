@@ -729,7 +729,29 @@ export function useStream(options) {
         get messages() {
             trackStreamMode("messages-tuple", "values");
             const finalValues = streamValues ?? streamValuesCacheRef.current ?? historyValues;
-            return getMessages(finalValues);
+            const messages = getMessages(finalValues);
+            
+            // ENHANCED: Handle duplicate messages to prevent React key conflicts
+            const uniqueMessages = messages.reduce((acc, message) => {
+                if (message.id) {
+                    const existingIndex = acc.findIndex(m => m.id === message.id);
+                    if (existingIndex !== -1) {
+                        // Update existing message with latest content
+                        acc[existingIndex] = message;
+                    } else {
+                        acc.push(message);
+                    }
+                } else {
+                    // For messages without ID, add them with a temporary ID
+                    acc.push({
+                        ...message,
+                        id: `temp-${Date.now()}-${Math.random()}`
+                    });
+                }
+                return acc;
+            }, []);
+            
+            return uniqueMessages;
         },
         getMessagesMetadata(message, index) {
             trackStreamMode("messages-tuple", "values");
