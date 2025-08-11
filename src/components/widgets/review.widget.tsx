@@ -1521,6 +1521,9 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
         isInBottomSheet ? "bg-white" : "min-h-screen bg-gray-50",
         "relative",
       )}
+      style={{
+        fontFamily: "Uber Move, Arial, Helvetica, sans-serif",
+      }}
     >
       {/* Loading Overlay */}
       {isSubmitting && (
