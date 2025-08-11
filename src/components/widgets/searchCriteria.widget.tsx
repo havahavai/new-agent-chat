@@ -349,98 +349,98 @@ const SearchCriteriaWidget = (args: Record<string, any>) => {
                   <span className="ml-2 text-gray-400">▼</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[320px] sm:w-[380px] md:w-[420px] p-0">
-                <div className="p-4 space-y-6">
+              <PopoverContent className="w-[260px] sm:w-[300px] p-0">
+                <div className="p-2 sm:p-3 space-y-3 sm:space-y-4">
                   {/* Select travellers */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">Select travellers</h3>
+                    <h3 className="text-sm sm:text-base font-semibold mb-2 sm:mb-3">Select travellers</h3>
 
                     {/* Adults */}
-                    <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center justify-between py-1.5 sm:py-2">
                       <div>
-                        <div className="font-medium">Adult</div>
-                        <div className="text-sm text-gray-500">12+ Years</div>
+                        <div className="text-xs sm:text-sm font-medium">Adult</div>
+                        <div className="text-xs text-gray-500 hidden sm:block">12+ Years</div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-8 w-8 rounded-full p-0"
+                          className="h-6 w-6 sm:h-7 sm:w-7 rounded-full p-0"
                           onClick={() => setAdults(Math.max(1, adults - 1))}
                           disabled={adults <= 1}
                         >
-                          <Minus className="h-4 w-4" />
+                          <Minus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                         </Button>
-                        <span className="w-8 text-center font-medium">{adults}</span>
+                        <span className="w-5 sm:w-6 text-center text-xs sm:text-sm font-medium">{adults}</span>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-8 w-8 rounded-full p-0"
+                          className="h-6 w-6 sm:h-7 sm:w-7 rounded-full p-0"
                           onClick={() => setAdults(adults + 1)}
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                         </Button>
                       </div>
                     </div>
 
                     {/* Children */}
-                    <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center justify-between py-1.5 sm:py-2">
                       <div>
-                        <div className="font-medium">Children</div>
-                        <div className="text-sm text-gray-500">2 - 12 yrs</div>
+                        <div className="text-xs sm:text-sm font-medium">Children</div>
+                        <div className="text-xs text-gray-500 hidden sm:block">2 - 12 yrs</div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-8 w-8 rounded-full p-0"
+                          className="h-6 w-6 sm:h-7 sm:w-7 rounded-full p-0"
                           onClick={() => setChildren(Math.max(0, children - 1))}
                           disabled={children <= 0}
                         >
-                          <Minus className="h-4 w-4" />
+                          <Minus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                         </Button>
-                        <span className="w-8 text-center font-medium">{children}</span>
+                        <span className="w-5 sm:w-6 text-center text-xs sm:text-sm font-medium">{children}</span>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-8 w-8 rounded-full p-0"
+                          className="h-6 w-6 sm:h-7 sm:w-7 rounded-full p-0"
                           onClick={() => setChildren(children + 1)}
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                         </Button>
                       </div>
                     </div>
 
                     {/* Infants */}
-                    <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center justify-between py-1.5 sm:py-2">
                       <div>
-                        <div className="font-medium">Infant</div>
-                        <div className="text-sm text-gray-500">Below 2 yrs</div>
+                        <div className="text-xs sm:text-sm font-medium">Infant</div>
+                        <div className="text-xs text-gray-500 hidden sm:block">Below 2 yrs</div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-8 w-8 rounded-full p-0"
+                          className="h-6 w-6 sm:h-7 sm:w-7 rounded-full p-0"
                           onClick={() => setInfants(Math.max(0, infants - 1))}
                           disabled={infants <= 0}
                         >
-                          <Minus className="h-4 w-4" />
+                          <Minus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                         </Button>
-                        <span className="w-8 text-center font-medium">{infants}</span>
+                        <span className="w-5 sm:w-6 text-center text-xs sm:text-sm font-medium">{infants}</span>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-8 w-8 rounded-full p-0"
+                          className="h-6 w-6 sm:h-7 sm:w-7 rounded-full p-0"
                           onClick={() => setInfants(infants + 1)}
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                         </Button>
                       </div>
                     </div>
@@ -448,19 +448,19 @@ const SearchCriteriaWidget = (args: Record<string, any>) => {
 
                   {/* Select class */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">Select class</h3>
-                    <div className="space-y-3">
+                    <h3 className="text-sm sm:text-base font-semibold mb-2 sm:mb-3">Select class</h3>
+                    <div className="space-y-1.5 sm:space-y-2">
                       {['Economy', 'Business', 'Premium Economy'].map((classOption) => (
-                        <label key={classOption} className="flex items-center gap-3 cursor-pointer">
+                        <label key={classOption} className="flex items-center gap-1.5 sm:gap-2 cursor-pointer">
                           <input
                             type="radio"
                             name="flightClass"
                             value={classOption}
                             checked={flightClass === classOption}
                             onChange={(e) => setFlightClass(e.target.value)}
-                            className="w-4 h-4 text-black border-gray-300 focus:ring-black"
+                            className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-black border-gray-300 focus:ring-black"
                           />
-                          <span className="font-medium">{classOption}</span>
+                          <span className="text-xs sm:text-sm font-medium">{classOption}</span>
                         </label>
                       ))}
                     </div>
