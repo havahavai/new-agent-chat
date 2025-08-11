@@ -624,6 +624,30 @@ interface ApiResponse {
 }
 
 // Component Interfaces
+interface FlightLeg {
+  departure: {
+    city: string;
+    airport: string;
+    code: string;
+    date: string;
+    time: string;
+  };
+  arrival: {
+    city: string;
+    airport: string;
+    code: string;
+    date: string;
+    time: string;
+  };
+  airline: {
+    name: string;
+    flightNumber: string;
+    aircraftType?: string;
+    iataCode?: string;
+  };
+  duration: string;
+}
+
 interface FlightDetails {
   departure: {
     city: string;
@@ -647,6 +671,7 @@ interface FlightDetails {
     iataCode?: string;
   };
   duration: string;
+  segments?: FlightLeg[];
 }
 
 interface PassengerDetails {
@@ -813,6 +838,36 @@ const transformApiDataToFlightDetails = (
   // Get airline info from first segment
   const firstSegment = flightOffer.segments[0];
 
+  // Transform segments into flight legs
+  const segments: FlightLeg[] = flightOffer.segments.map((segment) => {
+    const segmentDeparture = formatDateTime(segment.departure.date);
+    const segmentArrival = formatDateTime(segment.arrival.date);
+
+    return {
+      departure: {
+        city: segment.departure.cityCode,
+        airport: segment.departure.airportName || segment.departure.airportIata,
+        code: segment.departure.airportIata,
+        date: segmentDeparture.date,
+        time: segmentDeparture.time,
+      },
+      arrival: {
+        city: segment.arrival.cityCode,
+        airport: segment.arrival.airportName || segment.arrival.airportIata,
+        code: segment.arrival.airportIata,
+        date: segmentArrival.date,
+        time: segmentArrival.time,
+      },
+      airline: {
+        name: segment.airlineName || segment.airlineIata,
+        flightNumber: `${segment.airlineIata} ${segment.flightNumber}`,
+        aircraftType: segment.aircraftType,
+        iataCode: segment.airlineIata,
+      },
+      duration: parseDuration(segment.duration),
+    };
+  });
+
   return {
     departure: {
       city: flightOffer.departure.cityCode,
@@ -838,6 +893,7 @@ const transformApiDataToFlightDetails = (
       iataCode: firstSegment.airlineIata,
     },
     duration: parseDuration(flightOffer.duration),
+    segments: segments,
   };
 };
 
@@ -2292,17 +2348,17 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
                 className="cursor-pointer"
                 onClick={() => setIsPaymentExpanded(!isPaymentExpanded)}
               >
-                <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
-                  <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
                     <h2 className="text-lg font-semibold">Payment Summary</h2>
-                    <div className="text-sm font-bold text-gray-900">
-                      Total:{" "}
-                      {finalPaymentSummary.currency === "INR" ? "₹" : "$"}
-                      {calculateTotal().toFixed(2)}{" "}
-                      {finalPaymentSummary.currency}
-                    </div>
+                    {!isPaymentExpanded && (
+                      <div className="mt-1 text-sm text-gray-600">
+                        Total: {finalPaymentSummary.currency === "INR" ? "₹" : "$"}
+                        {calculateTotal().toFixed(2)} {finalPaymentSummary.currency}
+                      </div>
+                    )}
                   </div>
-                  <div>
+                  <div className="ml-4">
                     {isPaymentExpanded ? (
                       <ChevronUp className="h-5 w-5 text-gray-400" />
                     ) : (
@@ -2517,80 +2573,125 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
             {/* Expanded View */}
             {isFlightExpanded && (
               <div className="mt-3 border-t pt-4">
-                {/* Airline Info */}
-                <div className="mb-4 flex items-center space-x-3">
-                  <AirlineLogo
-                    airlineIata={finalFlightDetails.airline.iataCode || ""}
-                    airlineName={finalFlightDetails.airline.name}
-                    size="md"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium">
-                        {finalFlightDetails.airline.name}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex items-center space-x-2">
-                      <span className="text-xs text-gray-600">
-                        Aircraft:{" "}
-                        {finalFlightDetails.airline.aircraftType ||
-                          "Not specified"}
-                      </span>
-                    </div>
+                {/* Aircraft Info Only - Airline info already shown above */}
+                <div className="mb-4">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-600">
+                      Aircraft:{" "}
+                      {finalFlightDetails.airline.aircraftType ||
+                        "Not specified"}
+                    </span>
                   </div>
                 </div>
 
                 {/* Route Details */}
-                <div className="grid grid-cols-3 items-center gap-4">
-                  {/* Departure */}
-                  <div className="text-left">
-                    <div className="mb-1 text-sm text-gray-600">Departure</div>
-                    <div className="text-sm font-bold">
-                      {finalFlightDetails.departure.time}
-                    </div>
-                    <div className="text-sm text-gray-900">
-                      {finalFlightDetails.departure.city}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {finalFlightDetails.departure.date}
-                    </div>
-                  </div>
+                {finalFlightDetails.segments && finalFlightDetails.segments.length > 1 ? (
+                  /* Multiple Legs Display */
+                  <div className="space-y-4">
+                    {finalFlightDetails.segments.map((segment, index) => (
+                      <div key={index} className="border-l-2 border-blue-200 pl-4">
+                        <div className="mb-2 text-xs font-medium text-blue-600">
+                          Leg {index + 1} - {segment.airline.name} {segment.airline.flightNumber}
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          {/* Departure */}
+                          <div className="text-left">
+                            <div className="mb-1 text-xs text-gray-600">Departure</div>
+                            <div className="text-sm font-bold">
+                              {segment.departure.time}
+                            </div>
+                            <div className="text-xs text-gray-900">
+                              {segment.departure.city}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {segment.departure.date}
+                            </div>
+                          </div>
 
-                  {/* Duration Indicator */}
-                  <div className="flex flex-col items-center">
-                    <div className="mb-1 text-xs text-gray-600">
-                      {finalFlightDetails.duration}
-                    </div>
-                    <div className="flex w-full items-center">
-                      <div className="h-px w-20 bg-gray-300"></div>
-                      <ArrowRight className="mx-1 h-3 w-3 text-gray-400" />
-                    </div>
-                    <div className="mt-1 text-xs text-gray-600">Non-stop</div>
-                  </div>
+                          {/* Duration */}
+                          <div className="flex flex-col items-center">
+                            <div className="mb-1 text-xs text-gray-600">
+                              {segment.duration}
+                            </div>
+                            <div className="flex w-full items-center">
+                              <div className="h-px w-20 bg-gray-300"></div>
+                            </div>
+                          </div>
 
-                  {/* Arrival */}
-                  <div className="text-right">
-                    <div className="mb-1 text-sm text-gray-600">Arrival</div>
-                    <div className="text-sm font-bold">
-                      {finalFlightDetails.arrival.time}
+                          {/* Arrival */}
+                          <div className="text-right">
+                            <div className="mb-1 text-xs text-gray-600">Arrival</div>
+                            <div className="text-sm font-bold">
+                              {segment.arrival.time}
+                            </div>
+                            <div className="text-xs text-gray-900">
+                              {segment.arrival.city}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {segment.arrival.date}
+                            </div>
+                          </div>
+                        </div>
+                        {index < finalFlightDetails.segments.length - 1 && (
+                          <div className="mt-3 text-xs text-orange-600 font-medium">
+                            ⏱ Layover at {segment.arrival.city}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  /* Single Leg Display */
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    {/* Departure */}
+                    <div className="text-left">
+                      <div className="mb-1 text-sm text-gray-600">Departure</div>
+                      <div className="text-sm font-bold">
+                        {finalFlightDetails.departure.time}
+                      </div>
+                      <div className="text-xs text-gray-900">
+                        {finalFlightDetails.departure.city}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {finalFlightDetails.departure.date}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-900">
-                      {finalFlightDetails.arrival.city}
+
+                    {/* Duration Indicator */}
+                    <div className="flex flex-col items-center">
+                      <div className="mb-1 text-xs text-gray-600">
+                        {finalFlightDetails.duration}
+                      </div>
+                      <div className="flex w-full items-center">
+                        <div className="h-px w-20 bg-gray-300"></div>
+                      </div>
+                      <div className="mt-1 text-xs text-gray-600">Non-stop</div>
                     </div>
-                    <div className="text-xs text-gray-600">
-                      {finalFlightDetails.arrival.date}
+
+                    {/* Arrival */}
+                    <div className="text-right">
+                      <div className="mb-1 text-sm text-gray-600">Arrival</div>
+                      <div className="text-sm font-bold">
+                        {finalFlightDetails.arrival.time}
+                      </div>
+                      <div className="text-xs text-gray-900">
+                        {finalFlightDetails.arrival.city}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {finalFlightDetails.arrival.date}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
 
           {/* Passenger Details */}
-          <div className="rounded-lg bg-white p-4 shadow">
-            <h2 className="mb-4 text-lg font-semibold">Passenger Details</h2>
+          <div className="rounded-lg bg-white p-3 shadow">
+            <h2 className="mb-3 text-sm font-semibold">Passenger Details</h2>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
               {/* First Name */}
               <div>
                 <Label
@@ -2708,16 +2809,22 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
                 className="flex w-full items-center justify-between text-sm"
               >
                 <span>Saved Passengers</span>
-                {isSavedPassengersExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
+                {/* Show right arrow on mobile, up/down chevron on desktop */}
+                <div className="sm:hidden">
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+                <div className="hidden sm:block">
+                  {isSavedPassengersExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
               </Button>
 
-              {/* Saved Passengers List */}
+              {/* Saved Passengers List - Desktop */}
               {isSavedPassengersExpanded && (
-                <div className="mt-3 rounded-lg border bg-gray-50">
+                <div className="mt-3 rounded-lg border bg-gray-50 hidden sm:block">
                   <div className="p-3">
                     <div className="mb-2 text-xs font-medium text-gray-700">
                       Select a saved passenger:
@@ -2752,6 +2859,69 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Mobile Sidebar Overlay */}
+              {isSavedPassengersExpanded && (
+                <div className="sm:hidden">
+                  {/* Backdrop */}
+                  <div
+                    className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                    onClick={() => setIsSavedPassengersExpanded(false)}
+                  />
+
+                  {/* Sidebar */}
+                  <div className="fixed top-0 right-0 h-full w-80 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out">
+                    <div className="flex flex-col h-full">
+                      {/* Header */}
+                      <div className="flex items-center justify-between p-4 border-b">
+                        <h3 className="text-sm font-semibold">Saved Passengers</h3>
+                        <button
+                          onClick={() => setIsSavedPassengersExpanded(false)}
+                          className="p-1 hover:bg-gray-100 rounded"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 overflow-y-auto p-4">
+                        <div className="mb-3 text-xs text-gray-600">
+                          Select a saved passenger:
+                        </div>
+                        <div className="space-y-3">
+                          {savedPassengers.map((savedPassenger) => (
+                            <button
+                              key={savedPassenger.id}
+                              onClick={() =>
+                                handleSelectSavedPassenger(savedPassenger)
+                              }
+                              className="w-full rounded-lg border bg-gray-50 p-3 text-left transition-colors duration-200 hover:border-blue-200 hover:bg-blue-50"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="text-xs font-medium">
+                                    {savedPassenger.firstName}{" "}
+                                    {savedPassenger.lastName}
+                                  </div>
+                                  <div className="text-xs text-gray-600 mt-1">
+                                    {savedPassenger.gender} •{" "}
+                                    {savedPassenger.dateOfBirth
+                                      ? `Born ${savedPassenger.dateOfBirth}`
+                                      : "No DOB"}
+                                  </div>
+                                </div>
+                                <ArrowRight className="h-4 w-4 text-gray-400" />
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -2763,9 +2933,9 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <h2 className="text-lg font-semibold">Contact Information</h2>
+                  <h2 className="text-sm font-semibold">Contact Information</h2>
                   {!isContactExpanded && (
-                    <div className="mt-1 text-sm text-gray-600">
+                    <div className="mt-1 text-xs text-gray-600">
                       {contact.phone} • {contact.email}
                     </div>
                   )}
@@ -2865,12 +3035,12 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <h2 className="text-lg font-semibold">Travel Documents</h2>
+                    <h2 className="text-sm font-semibold">Travel Documents</h2>
                     {!isTravelDocsExpanded &&
                       document &&
                       document.type &&
                       document.number && (
-                        <div className="mt-1 text-sm text-gray-600">
+                        <div className="mt-1 text-xs text-gray-600">
                           {document.type} • {document.number} • Expires{" "}
                           {document.expiryDate}
                         </div>
@@ -2993,7 +3163,7 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
             <div className="rounded-lg bg-white p-4 shadow">
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <h2 className="text-lg font-semibold">Seat Allocation</h2>
+                  <h2 className="text-sm font-semibold">Seat Allocation</h2>
                   {isSeatSelected && (
                     <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
                       {finalSeatAllocation.seatNumber}
@@ -3003,7 +3173,7 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
 
                 {/* Toggle Switch */}
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Select seat</span>
+                  <span className="text-xs text-gray-600">Select seat</span>
                   <button
                     onClick={() => setIsSeatSelected(!isSeatSelected)}
                     className={cn(
@@ -3039,7 +3209,7 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
                   <div className="flex-1">
                     <div className="mb-2 flex items-center space-x-2">
                       <MapPin className="h-4 w-4 text-gray-600" />
-                      <span className="text-sm font-medium">
+                      <span className="text-xs font-medium">
                         {isSeatSelected
                           ? `Seat ${finalSeatAllocation.seatNumber}`
                           : "No seat selected"}
@@ -3067,7 +3237,7 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
 
               {!isSeatSelected && (
                 <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
-                  <p className="text-sm text-blue-700">
+                  <p className="text-xs text-blue-700">
                     💡 Select a seat to ensure you get your preferred location
                     on the aircraft.
                   </p>
@@ -3082,15 +3252,17 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
               className="cursor-pointer"
               onClick={() => setIsPaymentExpanded(!isPaymentExpanded)}
             >
-              <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
-                <div>
-                  <h2 className="text-lg font-semibold">Payment Summary</h2>
-                  <div className="text-sm font-bold text-gray-900">
-                    Total: {finalPaymentSummary.currency === "INR" ? "₹" : "$"}
-                    {calculateTotal().toFixed(2)} {finalPaymentSummary.currency}
-                  </div>
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h2 className="text-sm font-semibold">Payment Summary</h2>
+                  {!isPaymentExpanded && (
+                    <div className="mt-1 text-xs text-gray-600">
+                      Total: {finalPaymentSummary.currency === "INR" ? "₹" : "$"}
+                      {calculateTotal().toFixed(2)} {finalPaymentSummary.currency}
+                    </div>
+                  )}
                 </div>
-                <div>
+                <div className="ml-4">
                   {isPaymentExpanded ? (
                     <ChevronUp className="h-5 w-5 text-gray-400" />
                   ) : (
@@ -3158,8 +3330,8 @@ const ReviewWidget: React.FC<ReviewWidgetProps> = ({
                 {/* Total */}
                 <div className="mt-2 border-t pt-2">
                   <div className="flex justify-between">
-                    <span className="text-sm font-semibold">Total</span>
-                    <span className="text-sm font-bold">
+                    <span className="text-xs font-semibold">Total</span>
+                    <span className="text-xs font-bold">
                       {finalPaymentSummary.currency === "INR" ? "₹" : "$"}
                       {calculateTotal().toFixed(2)}{" "}
                       {finalPaymentSummary.currency}
