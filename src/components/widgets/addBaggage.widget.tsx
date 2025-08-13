@@ -5,10 +5,6 @@ import { Button } from "@/components/common/ui/button";
 import { useStreamContext } from "@/providers/Stream";
 import { submitInterruptResponse } from "./util";
 
-interface AddBaggageWidgetProps {
-  [key: string]: any;
-}
-
 interface BaggageOption {
   weight: number;
   price: number;
@@ -27,10 +23,25 @@ interface AddBaggageProps extends Record<string, any> {
 
 const AddBaggageWidget: React.FC<AddBaggageProps> = (args) => {
   const thread = useStreamContext();
+
+  // Implement frozen/live argument handling pattern
+  const liveArgs = args.apiData?.value?.widget?.args ?? {};
+  const frozenArgs = (liveArgs as any)?.submission;
+  const effectiveArgs = args.readOnly && frozenArgs ? frozenArgs : liveArgs;
+
+  // Extract baggage selection from effective args
+  const initialBaggageSelection = effectiveArgs?.baggageSelection ?? {};
+
   const [baggageSelection, setBaggageSelection] = useState<BaggageSelection>(
-    {},
+    initialBaggageSelection,
   );
   const [isLoading, setIsLoading] = useState(false);
+
+  const readOnly = !!args.readOnly;
+  const interruptId: string | undefined =
+    args.interruptId ??
+    args.apiData?.value?.interrupt_id ??
+    args.apiData?.interrupt_id;
 
   const baggageOptions: BaggageOption[] = [
     {
@@ -51,6 +62,9 @@ const AddBaggageWidget: React.FC<AddBaggageProps> = (args) => {
   ];
 
   const updateBaggageQuantity = (weight: number, change: number) => {
+    // Prevent updates in read-only mode
+    if (readOnly) return;
+
     setBaggageSelection((prev) => {
       const currentQuantity = prev[weight] || 0;
       const newQuantity = Math.max(0, currentQuantity + change);
@@ -98,7 +112,7 @@ const AddBaggageWidget: React.FC<AddBaggageProps> = (args) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hasSelection()) return;
+    if (!hasSelection() || readOnly) return;
 
     setIsLoading(true);
 
@@ -112,14 +126,36 @@ const AddBaggageWidget: React.FC<AddBaggageProps> = (args) => {
 
     try {
       const frozen = {
-        widget: { type: "AddBaggageWidget", args: { baggageSelection } },
+        widget: {
+          type: "AddBaggageWidget",
+          args: {
+            baggageSelection,
+            submission: {
+              baggageSelection,
+              totalBags: getTotalBags(),
+              totalWeight: getTotalWeight(),
+              totalPrice: getTotalPrice(),
+            }
+          }
+        },
         value: {
           type: "widget",
-          widget: { type: "AddBaggageWidget", args: { baggageSelection } },
+          widget: {
+            type: "AddBaggageWidget",
+            args: {
+              baggageSelection,
+              submission: {
+                baggageSelection,
+                totalBags: getTotalBags(),
+                totalWeight: getTotalWeight(),
+                totalPrice: getTotalPrice(),
+              }
+            }
+          },
         },
       };
       await submitInterruptResponse(thread, "response", responseData, {
-        interruptId: args.interruptId,
+        interruptId,
         frozenValue: frozen,
       });
     } catch (error: any) {
@@ -139,8 +175,13 @@ const AddBaggageWidget: React.FC<AddBaggageProps> = (args) => {
           Add Baggage
         </h2>
         <p className="text-sm text-gray-600">
-          Select your preferred baggage allowance
+          {readOnly ? "Your selected baggage" : "Select your preferred baggage allowance"}
         </p>
+        {readOnly && (
+          <div className="mt-2 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 inline-block">
+            Selected
+          </div>
+        )}
       </div>
 
       <form
@@ -157,7 +198,7 @@ const AddBaggageWidget: React.FC<AddBaggageProps> = (args) => {
                   quantity > 0
                     ? "border-black bg-gray-50"
                     : "border-gray-200 bg-white"
-                }`}
+                } ${readOnly ? "opacity-75" : ""}`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -176,7 +217,7 @@ const AddBaggageWidget: React.FC<AddBaggageProps> = (args) => {
                       <button
                         type="button"
                         onClick={() => updateBaggageQuantity(option.weight, -1)}
-                        disabled={quantity === 0}
+                        disabled={quantity === 0 || readOnly}
                         className="flex h-6 w-6 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:w-8"
                       >
                         <span className="text-sm font-bold sm:text-base">
@@ -191,7 +232,8 @@ const AddBaggageWidget: React.FC<AddBaggageProps> = (args) => {
                       <button
                         type="button"
                         onClick={() => updateBaggageQuantity(option.weight, 1)}
-                        className="flex h-6 w-6 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 hover:text-black sm:h-8 sm:w-8"
+                        disabled={readOnly}
+                        className="flex h-6 w-6 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:w-8"
                       >
                         <span className="text-sm font-bold sm:text-base">
                           +
@@ -252,10 +294,16 @@ const AddBaggageWidget: React.FC<AddBaggageProps> = (args) => {
 
           <Button
             type="submit"
-            disabled={!hasSelection() || isLoading}
-            className="w-full rounded-xl bg-black py-3 text-sm font-medium text-white transition-all duration-200 hover:bg-gray-800 disabled:bg-gray-300 disabled:text-gray-500 sm:py-4 sm:text-base"
+            disabled={!hasSelection() || isLoading || readOnly}
+            className={`w-full rounded-xl py-3 text-sm font-medium transition-all duration-200 sm:py-4 sm:text-base ${
+              readOnly
+                ? "bg-gray-100 text-gray-600 border border-gray-200 cursor-not-allowed"
+                : "bg-black text-white hover:bg-gray-800 disabled:bg-gray-300 disabled:text-gray-500"
+            }`}
           >
-            {isLoading ? (
+            {readOnly ? (
+              `Selected: ${getTotalBags()} Bag${getTotalBags() > 1 ? "s" : ""} - ₹${getTotalPrice()}`
+            ) : isLoading ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                 <span>Processing...</span>
