@@ -51,6 +51,14 @@ export async function submitInterruptResponse(
       };
     }
 
+    // Prune the local timeline to the current interrupt so re-submit time-travels immediately in the UI
+    try {
+      const interruptId = options?.interruptId;
+      if (interruptId && typeof thread?.pruneAfterInterrupt === "function") {
+        thread.pruneAfterInterrupt(String(interruptId));
+      }
+    } catch {}
+
     await thread.submit(submissionData, {
       streamSubgraphs: true,
       command: {

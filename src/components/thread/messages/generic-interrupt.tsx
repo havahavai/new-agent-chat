@@ -336,8 +336,11 @@ export const DynamicRenderer: React.FC<DynamicRendererProps> = ({
       );
     }
     const normalizedApiData = normalizeApiDataEnvelope(interrupt);
+    // Allow SearchCriteriaWidget to stay interactive after submission
+    const disableGuard =
+      computedReadOnly && widget?.type !== "SearchCriteriaWidget";
     return (
-      <ReadOnlyGuard disabled={computedReadOnly}>
+      <ReadOnlyGuard disabled={disableGuard}>
         <Component
           {...(widget?.args ?? {})}
           apiData={normalizedApiData}

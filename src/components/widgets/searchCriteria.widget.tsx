@@ -330,7 +330,7 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
                 onValueChange={handleFromAirportChange}
                 placeholder="From - City or Airport"
                 excludeAirport={toAirport}
-                disabled={readOnly}
+          
               />
             </div>
 
@@ -340,7 +340,7 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
                 onValueChange={handleToAirportChange}
                 placeholder="To - City or Airport"
                 excludeAirport={fromAirport}
-                disabled={readOnly}
+                
               />
             </div>
           </div>
@@ -351,7 +351,7 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
             <div className="flex-1">
               <div
                 className={
-                  readOnly ? "pointer-events-none opacity-60" : undefined
+                   undefined
                 }
               >
                 <DateInput
@@ -366,9 +366,7 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
             {tripType === "round" && (
               <div className="flex-1">
                 <div
-                  className={
-                    readOnly ? "pointer-events-none opacity-60" : undefined
-                  }
+                  
                 >
                   <DateInput
                     date={returnDate}
@@ -392,7 +390,7 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
                   role="combobox"
                   aria-expanded={showTravellerDropdown}
                   className="w-full justify-between focus:border-black focus:ring-black"
-                  disabled={readOnly}
+                 
                 >
                   <span>{formatTravellerText()}</span>
                   <span className="ml-2 text-gray-400">▼</span>
@@ -419,7 +417,7 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
                           size="sm"
                           className="h-8 w-8 rounded-full p-0"
                           onClick={() => setAdults(Math.max(1, adults - 1))}
-                          disabled={adults <= 1 || readOnly}
+                          
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -432,7 +430,7 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
                           size="sm"
                           className="h-8 w-8 rounded-full p-0"
                           onClick={() => setAdults(adults + 1)}
-                          disabled={readOnly}
+                          
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -452,7 +450,7 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
                           size="sm"
                           className="h-8 w-8 rounded-full p-0"
                           onClick={() => setChildren(Math.max(0, children - 1))}
-                          disabled={children <= 0 || readOnly}
+                          
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -465,7 +463,7 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
                           size="sm"
                           className="h-8 w-8 rounded-full p-0"
                           onClick={() => setChildren(children + 1)}
-                          disabled={readOnly}
+                          
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -485,7 +483,6 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
                           size="sm"
                           className="h-8 w-8 rounded-full p-0"
                           onClick={() => setInfants(Math.max(0, infants - 1))}
-                          disabled={infants <= 0 || readOnly}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -498,7 +495,6 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
                           size="sm"
                           className="h-8 w-8 rounded-full p-0"
                           onClick={() => setInfants(infants + 1)}
-                          disabled={readOnly}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -523,7 +519,6 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
                               checked={flightClass === classOption}
                               onChange={(e) => setFlightClass(e.target.value)}
                               className="h-4 w-4 border-gray-300 text-black focus:ring-black"
-                              disabled={readOnly}
                             />
                             <span className="font-medium">{classOption}</span>
                           </label>
@@ -540,12 +535,12 @@ const SearchCriteriaWidget = (args: SearchCriteriaProps) => {
           <div className="pt-4">
             <Button
               type="submit"
-              disabled={isLoading || readOnly}
+              disabled={isLoading }
               className={`w-full rounded-lg bg-black py-3 text-base font-semibold text-white hover:bg-gray-800 ${
-                !isFormValid() && !readOnly ? "cursor-not-allowed" : ""
+                !isFormValid() ? "cursor-not-allowed" : ""
               }`}
               style={{
-                cursor: !isFormValid() && !readOnly ? "not-allowed" : "pointer",
+                cursor: !isFormValid() ? "not-allowed" : "pointer",
               }}
             >
               {isLoading ? "Searching..." : "Search flights"}
