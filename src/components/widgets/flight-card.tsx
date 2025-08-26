@@ -45,6 +45,8 @@ interface FlightCardProps {
     isRefundable: boolean;
   };
   tags?: string[];
+  pros?: string[];
+  cons?: string[];
 
   // Legacy props for backward compatibility
   type?: "best" | "cheapest" | "fastest";
@@ -247,7 +249,13 @@ export function FlightCard(props: FlightCardProps) {
     flightData.airline,
     flightData.airlineCode,
   );
-  const badgeConfigs = getBadgeConfigs([flightData.type]);
+  const badgeConfigs = getBadgeConfigs(
+    props.tags && props.tags.length > 0
+      ? props.tags
+      : flightData.type
+        ? [flightData.type]
+        : [],
+  );
 
   const handlePriceButtonClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -370,6 +378,27 @@ export function FlightCard(props: FlightCardProps) {
               )}
             </div>
           </div>
+
+          {(Boolean(props.pros?.length) || Boolean(props.cons?.length)) && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {props.pros?.map((item, index) => (
+                <span
+                  key={`pro-${index}`}
+                  className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700"
+                >
+                  + {item}
+                </span>
+              ))}
+              {props.cons?.map((item, index) => (
+                <span
+                  key={`con-${index}`}
+                  className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700"
+                >
+                  − {item}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <FlightDetailsPopup
@@ -462,6 +491,27 @@ export function FlightCard(props: FlightCardProps) {
             </div>
           </div>
         </div>
+
+        {(Boolean(props.pros?.length) || Boolean(props.cons?.length)) && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {props.pros?.map((item, index) => (
+              <span
+                key={`pro-${index}`}
+                className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700"
+              >
+                + {item}
+              </span>
+            ))}
+            {props.cons?.map((item, index) => (
+              <span
+                key={`con-${index}`}
+                className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700"
+              >
+                − {item}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="mt-4 flex items-center justify-between pb-3">
           <button

@@ -25,8 +25,6 @@ export default function FlightOptionsV0Widget(args: FlightOptionsProps) {
   const allFlightOffers =
     (effectiveArgs as any)?.flightOffers ?? args.flightOffers ?? {};
 
-  console.log(`---> allFlightOffers: ${JSON.stringify(allFlightOffers)}`);
-
   const readOnly = !!args.readOnly;
 
   // Filter to show only 3 cards maximum with priority tags
