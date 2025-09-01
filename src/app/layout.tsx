@@ -4,6 +4,11 @@ import { Inter } from "next/font/google";
 import React from "react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import Script from "next/script";
+import NewRelicErrorBoundary from "../components/common/NewRelicErrorBoundary";
+import NewRelicMonitor from "../components/common/NewRelicMonitor";
+
+// Initialize New Relic for automatic instrumentation
+import "../lib/newrelic-init";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -21,6 +26,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Set New Relic transaction name for the main page
+  if (typeof window === "undefined") {
+    try {
+      const newrelic = require("newrelic");
+      newrelic.setTransactionName("Homepage");
+      console.log("New Relic transaction named: Homepage");
+    } catch (error) {
+      console.error("Failed to set New Relic transaction name:", error);
+    }
+  }
   return (
     <html
       lang="en"
@@ -45,7 +60,10 @@ export default function RootLayout({
             gtag('config', 'G-SLRTVD2EYS');
           `}
         </Script>
-        <NuqsAdapter>{children}</NuqsAdapter>
+        <NewRelicErrorBoundary>
+          <NewRelicMonitor />
+          <NuqsAdapter>{children}</NuqsAdapter>
+        </NewRelicErrorBoundary>
         <script
           dangerouslySetInnerHTML={{
             __html: `

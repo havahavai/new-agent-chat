@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
+  // Set New Relic transaction name directly
+  if (typeof window === "undefined") {
+    try {
+      const newrelic = require("newrelic");
+      newrelic.setTransactionName("API GET airports/search");
+      console.log("New Relic transaction named: API GET airports/search");
+    } catch (error) {
+      console.error("Failed to set New Relic transaction name:", error);
+    }
+  }
   const searchParams = request.nextUrl.searchParams;
   const query = searchParams.get("string");
 
