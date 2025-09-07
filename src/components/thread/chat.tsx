@@ -530,7 +530,7 @@ export function Thread() {
                             className="field-sizing-content min-h-[3.5rem] max-h-[8rem] w-full resize-none border-none bg-transparent p-3 pr-16 pb-0 leading-relaxed shadow-none ring-0 outline-none focus:ring-0 focus:outline-none sm:field-sizing-content sm:max-h-[10rem] sm:pr-2 sm:p-2 sm:leading-tight"
                           />
                           {/* Mobile: Button inside input area */}
-                          <div className="absolute top-1/2 right-3 -translate-y-1/2 sm:hidden">
+                          <div className="absolute top-3 right-3 sm:hidden">
                             {stream.isLoading ? (
                               <Button
                                 key="stop"
@@ -690,7 +690,7 @@ export function Thread() {
                                 className="field-sizing-content min-h-[3.5rem] max-h-[8rem] w-full resize-none border-none bg-transparent p-3 pr-16 pb-0 leading-relaxed shadow-none ring-0 outline-none focus:ring-0 focus:outline-none sm:field-sizing-content sm:max-h-[10rem] sm:pr-3 sm:p-3.5 sm:leading-tight"
                               />
                               {/* Mobile: Button inside input area */}
-                              <div className="absolute top-1/2 right-3 -translate-y-1/2 sm:hidden">
+                              <div className="absolute top-3 right-3 sm:hidden">
                                 {stream.isLoading ? (
                                   <Button
                                     key="stop"
