@@ -25,6 +25,7 @@ import {
   Ticket,
   Clock,
   Armchair,
+  Mic,
 } from "lucide-react";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { toast } from "sonner";
@@ -52,6 +53,8 @@ import { useTranslations } from "@/hooks/useTranslations";
 import { useRTLMirror } from "@/hooks/useRTLMirror";
 import "@/styles/rtl-mirror.css";
 import { getCurrentLanguage } from "@/utils/i18n";
+import { ChatVoiceButton } from "@/components/voice/ChatVoiceButton";
+import { VoiceStreamProvider } from "@/providers/VoiceStream";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -598,6 +601,27 @@ export function Thread() {
                             accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
                             className="hidden"
                           />
+
+                            {/* Voice Button for new thread */}
+                          <VoiceStreamProvider>
+                            <ChatVoiceButton
+                              onTranscript={(transcript: string) => {
+                                setInput(transcript);
+                              }}
+                              onAudioResponse={(audioBase64: string) => {
+                                // Play the audio response
+                                const audio = new Audio(`data:audio/mpeg;base64,${audioBase64}`);
+                                audio.play().catch(err => {
+                                  console.error('Error playing audio:', err);
+                                  toast.error('Could not play audio response');
+                                });
+                              }}
+                              onError={(error: string) => {
+                                toast.error(`Voice error: ${error}`);
+                              }}
+                            />
+                          </VoiceStreamProvider>
+
                           {stream.isLoading ? (
                             <Button
                               key="stop"
@@ -762,17 +786,37 @@ export function Thread() {
                                   Cancel
                                 </Button>
                               ) : (
-                                <Button
-                                  type="submit"
-                                  className="ml-auto shadow-md transition-all"
-                                  disabled={
-                                    isLoading ||
-                                    (!input.trim() &&
-                                      contentBlocks.length === 0)
-                                  }
-                                >
-                                  Send
-                                </Button>
+                                <>
+                                  {/* Voice Button */}
+                                  <ChatVoiceButton
+                                    onTranscript={(transcript: string) => {
+                                      setInput(transcript);
+                                    }}
+                                    onAudioResponse={(audioBase64: string) => {
+                                      // Play the audio response
+                                      const audio = new Audio(`data:audio/mpeg;base64,${audioBase64}`);
+                                      audio.play().catch(err => {
+                                        console.error('Error playing audio:', err);
+                                        toast.error('Could not play audio response');
+                                      });
+                                    }}
+                                    onError={(error: string) => {
+                                      toast.error(`Voice error: ${error}`);
+                                    }}
+                                  />
+                                  
+                                  <Button
+                                    type="submit"
+                                    className="ml-auto shadow-md transition-all"
+                                    disabled={
+                                      isLoading ||
+                                      (!input.trim() &&
+                                        contentBlocks.length === 0)
+                                    }
+                                  >
+                                    Send
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </form>

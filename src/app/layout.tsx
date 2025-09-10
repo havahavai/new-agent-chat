@@ -12,6 +12,24 @@ const inter = Inter({
   display: "swap",
 });
 
+// Add VAD types
+declare global {
+  interface Window {
+    vad: {
+      MicVAD: {
+        new: (options: {
+          onSpeechStart: () => void;
+          onSpeechEnd: (audio: Float32Array) => void;
+          onVADMisfire: () => void;
+          onnxWASMBasePath: string;
+          baseAssetPath: string;
+          // ... other options
+        }) => Promise<any>;
+      };
+    };
+  }
+}
+
 export const metadata: Metadata = {
   title: {
     default: "Flyo - Your personal travel assistant",
@@ -97,6 +115,16 @@ export default function RootLayout({
       <body
         className={`${inter.className} fixed inset-0 h-[100dvh] w-full touch-manipulation overflow-hidden overscroll-none`}
       >
+        {/* VAD Scripts - Add these */}
+        <Script
+          src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.js"
+          strategy="beforeInteractive"
+        />
+        <Script
+          src="https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.27/dist/bundle.min.js"
+          strategy="beforeInteractive"
+        />
+
         {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-SLRTVD2EYS"

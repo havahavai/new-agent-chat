@@ -21,8 +21,8 @@ import { toast } from "sonner";
 import { storeThread } from "@/utils/thread-storage";
 import { InterruptPersistenceProvider } from "./InterruptPersistenceContext";
 
-export type StateType = {
-  messages: Message[];
+export type StateType = { 
+  messages: Message[]; 
   ui?: any[];
   itinerary: any;
 };
