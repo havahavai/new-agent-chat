@@ -120,7 +120,7 @@ function isDisplayableMessage(m: Message) {
 export function Thread() {
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
-  const { locationData, setShowPermissionDialog } = useLocationContext();
+  const { locationData } = useLocationContext();
   const { quickTabs: dynamicQuickTabs, isLoading: personalizationLoading } = usePersonalizationContext();
 
   // Initialize translations for homePage
@@ -586,19 +586,6 @@ export function Thread() {
                         {", where are we flying today?"}
                       </div>
                     }
-
-                    {/* Temporary Location Testing Button */}
-                    <div className="mb-4 flex justify-center">
-                      <Button
-                        onClick={() => setShowPermissionDialog(true)}
-                        variant="outline"
-                        size="sm"
-                        className="border-2 border-dashed border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:border-orange-400 transition-all duration-200"
-                      >
-                        <MapPin className="h-4 w-4 mr-2" />
-                        🧪 Test Location Permission
-                      </Button>
-                    </div>
                   </div>
 
                   {/* Centered Chat Input - positioned lower on mobile for better thumb reach */}
