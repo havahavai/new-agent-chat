@@ -57,8 +57,9 @@ export const PersonalizationProvider: React.FC<PersonalizationProviderProps> = (
         setLastFetched(new Date());
         console.log("Personalization data updated:", validQuickTabs);
       } else {
-        setError(result.error);
-        console.error("Personalization API error:", result.error);
+        const errorMessage = 'error' in result ? result.error : 'Unknown error';
+        setError(errorMessage);
+        console.error("Personalization API error:", errorMessage);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
