@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useStreamContext } from "@/providers/Stream";
 import { useLocationContext } from "@/providers/LocationContext";
+import { usePersonalizationContext } from "@/providers/PersonalizationContext";
 import { Button } from "../ui/button";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
 import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
@@ -25,6 +26,7 @@ import {
   Ticket,
   Clock,
   Armchair,
+  MapPin,
 } from "lucide-react";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { toast } from "sonner";
@@ -118,7 +120,8 @@ function isDisplayableMessage(m: Message) {
 export function Thread() {
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
-  const { locationData } = useLocationContext();
+  const { locationData, setShowPermissionDialog } = useLocationContext();
+  const { quickTabs: dynamicQuickTabs, isLoading: personalizationLoading } = usePersonalizationContext();
 
   // Initialize translations for homePage
   const { t } = useTranslations("homePage");
@@ -150,6 +153,14 @@ export function Thread() {
   const [firstTokenReceived, setFirstTokenReceived] = useState(false); //TODO: remove if not needed
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
   const [firstName, setFirstName] = useState<string>("");
+
+  // Carousel state for quick tabs
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  // Drag state for desktop carousel
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, scrollLeft: 0 });
+  const [dragMomentum, setDragMomentum] = useState(0);
 
   useEffect(() => {
     try {
@@ -332,8 +343,8 @@ export function Thread() {
     setContentBlocks([]);
   };
 
-  // Quick Actions: one-click prompts to guide users
-  const quickActions: Array<{ label: string; text: string; icon?: ReactNode }> =
+  // Static Quick Actions: one-click prompts to guide users
+  const staticQuickActions: Array<{ label: string; text: string; icon?: ReactNode }> =
     [
       {
         label: t("quickActionTab.bookMeAFlight", "Book me a\nflight"),
@@ -356,12 +367,86 @@ export function Thread() {
         text: t('quickActionTab.showMePastFlights', 'Show me my past flights'),
         icon: <Ticket className="h-4 w-4" />,
       },
-      {
-        label: t("quickActionTab.doMyWebCheckin", "Please do my\nwebcheckin"),
-        text: t("quickActionTab.doMyWebCheckin", "Please do my webcheckin"),
-        icon: <Ticket className="h-4 w-4" />,
-      },
+      // {
+      //   label: t("quickActionTab.doMyWebCheckin", "Please do my\nwebcheckin"),
+      //   text: t("quickActionTab.doMyWebCheckin", "Please do my webcheckin"),
+      //   icon: <Ticket className="h-4 w-4" />,
+      // },
     ];
+
+  // Combine static and dynamic quick tabs (static tabs first, then dynamic)
+  const allQuickTabs = [
+    ...staticQuickActions.map(action => ({
+      ...action,
+      isDynamic: false,
+    })),
+    ...dynamicQuickTabs.map(tab => ({
+      label: tab.title,
+      text: tab.text,
+      isDynamic: true,
+    })),
+  ];
+
+  // Drag functionality for desktop carousel
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!carouselRef.current || !isLargeScreen) return;
+
+    setIsDragging(true);
+    setDragStart({
+      x: e.pageX - carouselRef.current.offsetLeft,
+      scrollLeft: carouselRef.current.scrollLeft,
+    });
+    setDragMomentum(0);
+
+    // Prevent text selection during drag
+    e.preventDefault();
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging) {
+      setIsDragging(false);
+    }
+  };
+
+  // Add global mouse event listeners for drag functionality
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !carouselRef.current) return;
+
+      e.preventDefault();
+      const x = e.pageX - carouselRef.current.offsetLeft;
+      const walk = (x - dragStart.x) * 2;
+      const newScrollLeft = dragStart.scrollLeft - walk;
+
+      carouselRef.current.scrollLeft = newScrollLeft;
+      setDragMomentum(walk);
+    };
+
+    const handleGlobalMouseUp = () => {
+      if (!isDragging) return;
+
+      setIsDragging(false);
+
+      // Apply momentum scrolling
+      if (Math.abs(dragMomentum) > 5 && carouselRef.current) {
+        const momentum = dragMomentum * 3;
+        carouselRef.current.scrollBy({
+          left: -momentum,
+          behavior: 'smooth'
+        });
+      }
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isDragging, dragStart, dragMomentum]);
 
   const handleQuickActionClick = (text: string) => {
     if (isLoading) return;
@@ -501,35 +586,81 @@ export function Thread() {
                         {", where are we flying today?"}
                       </div>
                     }
+
+                    {/* Temporary Location Testing Button */}
+                    <div className="mb-4 flex justify-center">
+                      <Button
+                        onClick={() => setShowPermissionDialog(true)}
+                        variant="outline"
+                        size="sm"
+                        className="border-2 border-dashed border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:border-orange-400 transition-all duration-200"
+                      >
+                        <MapPin className="h-4 w-4 mr-2" />
+                        🧪 Test Location Permission
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Centered Chat Input - positioned lower on mobile for better thumb reach */}
                   <div className="mt-auto mb-12 w-full max-w-3xl py-4 sm:mt-0 sm:mb-0 sm:py-8">
                     <div
                       className={cn(
-                        "mx-auto mb-4 w-full max-w-3xl overflow-x-auto px-1 text-center [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0",
+                        "mx-auto mb-4 w-full max-w-3xl text-center",
                       )}
                       dir={isRTLMirrorRequired ? "rtl" : undefined}
                     >
-                      <div
-                        className={cn(
-                          "inline-flex items-start gap-3 whitespace-nowrap sm:gap-4",
-                        )}
-                      >
-                        {quickActions.slice(0, 4).map((qa) => (
-                          <button
-                            key={qa.label}
-                            type="button"
-                            onClick={() => handleQuickActionClick(qa.text)}
-                            className="group hover:text-primary inline-flex min-h-[3rem] w-auto shrink-0 items-center justify-start rounded-2xl border border-gray-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur transition-all duration-200 hover:bg-white hover:shadow-md focus-visible:ring-2 focus-visible:ring-blue-600/30 focus-visible:outline-none"
-                            aria-label={qa.label}
+                      {personalizationLoading && allQuickTabs.length === 0 ? (
+                        <div className="flex items-center justify-center py-4">
+                          <LoaderCircle className="h-5 w-5 animate-spin text-gray-400" />
+                          <span className="ml-2 text-sm text-gray-500">Loading personalized suggestions...</span>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          {/* Scrollable Container with Drag Support */}
+                          <div
+                            ref={carouselRef}
+                            className={cn(
+                              "overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0",
+                              isLargeScreen ? "cursor-grab active:cursor-grabbing" : "",
+                              isDragging ? "cursor-grabbing select-none" : ""
+                            )}
+                            onMouseDown={handleMouseDown}
+                            onMouseLeave={handleMouseLeave}
                           >
-                            <span className="text-left text-sm leading-tight font-medium whitespace-pre-line text-gray-700">
-                              {qa.label}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
+                            <div
+                              className={cn(
+                                "inline-flex items-start gap-3 whitespace-nowrap sm:gap-4",
+                              )}
+                            >
+                              {allQuickTabs.map((qa) => (
+                              <button
+                                key={qa.label}
+                                type="button"
+                                onClick={() => {
+                                  if (qa.isDynamic) {
+                                    // For dynamic tabs, paste text into input
+                                    setInput(qa.text);
+                                  } else {
+                                    // For static tabs, use existing handler
+                                    handleQuickActionClick(qa.text);
+                                  }
+                                }}
+                                className={cn(
+                                  "group hover:text-primary inline-flex min-h-[3rem] w-auto shrink-0 items-center justify-start rounded-2xl border px-4 py-3 shadow-sm backdrop-blur transition-all duration-200 hover:bg-white hover:shadow-md focus-visible:ring-2 focus-visible:ring-gray-600/30 focus-visible:outline-none",
+                                  // Use consistent black/white styling for both static and dynamic tabs
+                                  "border-gray-200 bg-white/80"
+                                )}
+                                aria-label={qa.label}
+                              >
+                                <span className="text-left text-sm leading-tight font-medium whitespace-pre-line text-gray-700">
+                                  {qa.label}
+                                </span>
+                              </button>
+                            ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div
                       ref={dropRef}
