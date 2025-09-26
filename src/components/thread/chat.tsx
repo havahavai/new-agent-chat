@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { FormEvent, useEffect, useRef, useState, ReactNode } from "react";
+import { FormEvent, useEffect, useRef, useState, ReactNode, useMemo } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useStreamContext } from "@/providers/Stream";
@@ -43,6 +43,8 @@ import {
   getUserFirstName,
 } from "@/services/authService";
 import { getSelectedCurrency } from "@/utils/currency-storage";
+import { getSelectedCountry } from "@/utils/country-storage";
+import { detectAndSetUserCurrency } from "@/services/currencyDetectionService";
 import { InterruptManager } from "./messages/interrupt-manager";
 import { GenericInterruptView } from "./messages/generic-interrupt";
 import { NonAgentFlowReopenButton } from "./NonAgentFlowReopenButton";
@@ -150,6 +152,7 @@ export function Thread() {
   const [firstTokenReceived, setFirstTokenReceived] = useState(false); //TODO: remove if not needed
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
   const [firstName, setFirstName] = useState<string>("");
+  const [refreshKey, setRefreshKey] = useState(0); // Force re-render of quick actions
 
   useEffect(() => {
     try {
@@ -248,7 +251,7 @@ export function Thread() {
     prevMessageLength.current = messageBlocks.length;
   }, [isLoading, messageBlocks.length]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if ((input.trim().length === 0 && contentBlocks.length === 0) || isLoading)
       return;
@@ -257,6 +260,16 @@ export function Thread() {
     // Get user ID from JWT token
     const jwtToken = getJwtToken();
     const userId = jwtToken ? GetUserId(jwtToken) : null;
+
+    // Perform automatic currency detection based on IP
+    // This will update localStorage if a better currency is detected
+    try {
+      await detectAndSetUserCurrency();
+      // Trigger refresh of quick actions to show updated values
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.warn("Currency detection failed, using stored/default values:", error);
+    }
 
     const newHumanMessage: Message = {
       id: uuidv4(),
@@ -296,11 +309,14 @@ export function Thread() {
       };
     }
 
-    // Get user currency preference
+    // Get user currency and country preferences (potentially updated by detection)
     const userCurrency = getSelectedCurrency();
+    const userCountry = getSelectedCountry();
     if (userCurrency) {
       submissionData.userCurrency = userCurrency;
     }
+    // Always include userCountry, even if it's an empty string
+    submissionData.userCountry = userCountry;
 
     const userLanguage = getCurrentLanguage();
     if (userLanguage) {
@@ -333,8 +349,7 @@ export function Thread() {
   };
 
   // Quick Actions: one-click prompts to guide users
-  const quickActions: Array<{ label: string; text: string; icon?: ReactNode }> =
-    [
+  const quickActions: Array<{ label: string; text: string; icon?: ReactNode }> = useMemo(() => [
       {
         label: t("quickActionTab.bookMeAFlight.label", "Book me a\nflight"),
         text: t("quickActionTab.bookMeAFlight.text", "Book me a flight"),
@@ -373,14 +388,24 @@ export function Thread() {
         ),
         icon: <Ticket className="h-4 w-4" />,
       },
-    ];
+    ], [refreshKey]); // Re-compute when refreshKey changes
 
-  const handleQuickActionClick = (text: string) => {
+  const handleQuickActionClick = async (text: string) => {
     if (isLoading) return;
     setFirstTokenReceived(false);
 
     const jwtToken = getJwtToken();
     const userId = jwtToken ? GetUserId(jwtToken) : null;
+
+    // Perform automatic currency detection based on IP
+    // This will update localStorage if a better currency is detected
+    try {
+      await detectAndSetUserCurrency();
+      // Trigger refresh of quick actions to show updated values
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.warn("Currency detection failed, using stored/default values:", error);
+    }
 
     const newHumanMessage: Message = {
       id: uuidv4(),
@@ -415,10 +440,14 @@ export function Thread() {
       };
     }
 
-    // Get user currency preference
+    // Get user currency and country preferences (potentially updated by detection)
     const userCurrency = getSelectedCurrency();
+    const userCountry = getSelectedCountry();
     if (userCurrency) {
       submissionData.userCurrency = userCurrency;
+    }
+    if (userCountry) {
+      submissionData.userCountry = userCountry;
     }
 
     const userLanguage = getCurrentLanguage();
