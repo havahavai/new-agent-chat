@@ -49,6 +49,7 @@ export function AllFlightsSheet({ children, flightData = [], onFlightSelect, fli
 
   // Use filter context for state management
   const {
+    filteredFlights,
     filterState,
     priceStats,
     maxAvailableStops,
@@ -206,10 +207,7 @@ export function AllFlightsSheet({ children, flightData = [], onFlightSelect, fli
 
 
 
-  // Transform flight data or use mock data as fallback
-  const allFlights = flightData.length > 0
-    ? flightData.map(transformFlightData).filter(Boolean)
-    : []
+  // Flight data is now handled by the filter context
 
   const departureTimeSlots = [
     { label: t('departureTimeSlots.early'), value: "early" },
@@ -219,57 +217,8 @@ export function AllFlightsSheet({ children, flightData = [], onFlightSelect, fli
     { label: t('departureTimeSlots.night'), value: "night" },
   ]
 
-  // Since data is already filtered by the context, we just need to apply additional UI-level filtering
-  // and use the context state for filter controls. For now, just use the pre-filtered data.
-  const filteredFlights = allFlights.filter((flight) => {
-    if (!flight) return false
-
-    // Additional UI-level filtering can be added here if needed
-    // For now, just use the data as-is since it's already filtered by the context
-
-    // User-interactive Airline filter using context state
-    const airlineMatch = filterState.selectedAirlines.length === 0 || filterState.selectedAirlines.includes(flight.airline)
-    if (!airlineMatch) return false
-
-    // User-interactive Stops filter using context state
-    const stopsMatch = flight.stops <= filterState.maxStops
-    if (!stopsMatch) return false
-
-    // User-interactive Departure time filter using context state
-    let timeMatch = true
-    if (filterState.selectedDepartureTime.length > 0) {
-      const hour = parseInt(flight.departureTime.split(":")[0])
-      timeMatch = filterState.selectedDepartureTime.some((slot) => {
-        switch (slot) {
-          case "early":
-            return hour >= 0 && hour < 8
-          case "morning":
-            return hour >= 8 && hour < 12
-          case "afternoon":
-            return hour >= 12 && hour < 16
-          case "evening":
-            return hour >= 16 && hour < 20
-          case "night":
-            return hour >= 20 && hour < 24
-          default:
-            return true
-        }
-      })
-    }
-
-    return timeMatch
-  })
-
-const sortedFlights = [...filteredFlights].sort((a, b) => {
-  if (!a || !b) return 0; // if either is null, treat them as equal
-
-  if (filterState.sortBy === "cheapest") {
-    return a.totalAmount - b.totalAmount;
-  } else {
-    // For fastest, we'd need to parse duration - for now, sort by total amount as fallback
-    return a.totalAmount - b.totalAmount;
-  }
-});
+  // Use the already filtered and sorted flights from the filter context
+  // The context handles all filtering and sorting logic
 
 
 
@@ -288,7 +237,7 @@ const sortedFlights = [...filteredFlights].sort((a, b) => {
           <div className="flex flex-col h-full">
             <div className="flex-shrink-0 border-b bg-background">
               <SheetHeader className="mb-2">
-                <SheetTitle>{allFlights.length > 0 ? t('title.flights', 'Flights') : t('messages.noFlightsAvailable')}</SheetTitle>
+                <SheetTitle>{filteredFlights.length > 0 ? t('title.flights', 'Flights') : t('messages.noFlightsAvailable')}</SheetTitle>
               </SheetHeader>
 
               <div className="mb-3 px-4">
@@ -307,6 +256,15 @@ const sortedFlights = [...filteredFlights].sort((a, b) => {
                       {activeFiltersCount}
                     </Badge>
                   )}
+                </Button>
+                <Button
+                  variant={filterState.sortBy === "best" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSortBy("best")}
+                  className={`flex items-center gap-2 ${filterState.sortBy === "best" ? "bg-black text-white" : "bg-transparent"}`}
+                >
+                  <span>⭐</span>
+                  {t('buttons.best', 'Best')}
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -334,16 +292,16 @@ const sortedFlights = [...filteredFlights].sort((a, b) => {
 
         <div className="flex-1 overflow-y-auto px-1">
           <div className="space-y-2 pb-4">
-            {allFlights.length === 0 ? (
+            {filteredFlights.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 {t('messages.noFlightsAvailable')}
               </div>
-            ) : sortedFlights.length === 0 ? (
+            ) : filteredFlights.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 {t('messages.noMatchingFlights')}
               </div>
             ) : (
-              sortedFlights.map((flight, index) => (
+              filteredFlights.map((flight, index) => (
                 <div key={index} className="bg-white rounded-lg border shadow-sm">
                   <div className="px-2 py-1">
                     <FlightCard

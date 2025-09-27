@@ -50,6 +50,9 @@ interface FlightCardProps {
     isRefundable: boolean;
   };
   tags?: string[];
+  rankingScore?: number;
+  pros?: string[];
+  cons?: string[];
 
   // Legacy props for backward compatibility
   type?: "best" | "cheapest" | "fastest";
@@ -167,6 +170,32 @@ const getBadgeConfigs = (tags: string[] = [], t: (key: string, fallback?: string
     });
   }
   return badges;
+};
+
+// Pros and Cons Capsules Component
+const ProsCons = ({ pros = [], cons = [] }: { pros?: string[]; cons?: string[] }) => {
+  if (pros.length === 0 && cons.length === 0) return null;
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-1">
+      {pros.map((pro, index) => (
+        <span
+          key={`pro-${index}`}
+          className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-800 border border-green-200"
+        >
+          {pro}
+        </span>
+      ))}
+      {cons.map((con, index) => (
+        <span
+          key={`con-${index}`}
+          className="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-800 border border-red-200"
+        >
+          {con}
+        </span>
+      ))}
+    </div>
+  );
 };
 
 export function FlightCard(props: FlightCardProps) {
@@ -327,6 +356,7 @@ export function FlightCard(props: FlightCardProps) {
                   <Info className="w-2.5 h-2.5" />
                   {t('buttons.details', 'Details')}
                 </button>
+                <div>rankingScore: {props.rankingScore}</div>
               </div>
             </div>
 
@@ -390,6 +420,9 @@ export function FlightCard(props: FlightCardProps) {
               )}
             </div>
           </div>
+
+          {/* Pros and Cons Capsules */}
+          <ProsCons pros={props.pros} cons={props.cons} />
           </div>
         </div>
 
@@ -504,6 +537,10 @@ export function FlightCard(props: FlightCardProps) {
             {flightData.price}
           </button>
         </div>
+
+        {/* Pros and Cons Capsules */}
+        <ProsCons pros={props.pros} cons={props.cons} />
+        <div>rankingScore: {props.rankingScore}</div>
         </div>
       </div>
 

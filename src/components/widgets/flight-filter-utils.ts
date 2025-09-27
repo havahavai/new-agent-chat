@@ -136,7 +136,7 @@ export interface FlightFilterState {
   selectedAirlines: string[];
   maxStops: number;
   selectedDepartureTime: string[];
-  sortBy: "cheapest" | "fastest";
+  sortBy: "cheapest" | "fastest" | "best";
 }
 
 export interface FlightFilters extends FlightFilterState {
@@ -502,14 +502,14 @@ export function generateCustomTags(
 // Sort flights based on criteria
 export function sortFlights(
   flights: TransformedFlightData[],
-  sortBy: "cheapest" | "fastest",
+  sortBy: "cheapest" | "fastest" | "best",
 ): TransformedFlightData[] {
   return [...flights].sort((a, b) => {
     if (!a || !b) return 0;
 
     if (sortBy === "cheapest") {
       return a.totalAmount - b.totalAmount;
-    } else {
+    } else if (sortBy === "fastest") {
       // Parse durations for accurate fastest sorting
       const durationA =
         a.journey && a.journey.length > 0 && a.journey[0].duration
@@ -522,6 +522,11 @@ export function sortFlights(
           : parseISO8601Duration(b.duration || "");
 
       return durationA - durationB;
+    } else {
+      // Sort by ranking score (highest first)
+      const scoreA = a.rankingScore || 0;
+      const scoreB = b.rankingScore || 0;
+      return scoreB - scoreA;
     }
   });
 }
