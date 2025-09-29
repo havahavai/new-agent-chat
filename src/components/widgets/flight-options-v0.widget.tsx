@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { FlightCard } from "./flight-card";
 import { AllFlightsSheet } from "./all-flights-sheet";
 import { Button } from "@/components/ui/button";
@@ -85,8 +85,109 @@ function FlightOptionsContent(args: FlightOptionsProps) {
     (effectiveArgs as any)?.flightFilters ?? args.flightFilters ?? {};
 
   // // Check if there's no flight data available
-  const allFlightOffers = args.allFlightOffers || [];
+  const allFlightOffers = useMemo(
+    () => args.allFlightOffers || [],
+    [args.allFlightOffers],
+  );
   const hasNoFlightData = !allFlightOffers || allFlightOffers.length === 0;
+
+  // Dedupe key and GA trigger: must be declared before any early returns
+  const resultsKeyRef = useRef<string>("");
+  useEffect(() => {
+    if (readOnly) return;
+    if (!allFlightOffers || allFlightOffers.length === 0) return;
+
+    const key = Array.isArray(allFlightOffers)
+      ? allFlightOffers.map((f: any) => f.flightOfferId || "").join("|")
+      : "";
+    if (resultsKeyRef.current === key) return;
+    resultsKeyRef.current = key;
+
+    try {
+      const getPriceNumber = (f: any): number => {
+        if (typeof f?.totalAmount === "number") return f.totalAmount;
+        if (typeof f?.price === "number") return f.price;
+        if (typeof f?.price === "string") {
+          const n = parseFloat(f.price.replace(/[^0-9.]/g, ""));
+          return isNaN(n) ? 0 : n;
+        }
+        return 0;
+      };
+
+      const getAirlineName = (f: any): string =>
+        f?.journey?.[0]?.segments?.[0]?.airlineName ||
+        f?.airline ||
+        f?.airlineName ||
+        "";
+
+      const getStopCount = (f: any): number => {
+        const segs = f?.journey?.[0]?.segments;
+        if (Array.isArray(segs)) return Math.max(0, segs.length - 1);
+        return typeof f?.stops === "number" ? f.stops : 0;
+      };
+
+      // Determine top flights from current filtered list (best, cheapest, fastest)
+      const pickFirstByTag = (tag: string) =>
+        Array.isArray(filteredFlights)
+          ? filteredFlights.find(
+              (offer: any) =>
+                offer.type === tag || (offer.tags && offer.tags.includes(tag)),
+            )
+          : undefined;
+      const topFlightsRaw = [
+        pickFirstByTag("best"),
+        pickFirstByTag("cheapest"),
+        pickFirstByTag("fastest"),
+      ].filter(Boolean) as any[];
+
+      const prices: number[] = allFlightOffers
+        .map(getPriceNumber)
+        .filter((n: number) => typeof n === "number");
+      const lowestPrice = prices.length ? Math.min(...prices) : 0;
+      const highestPrice = prices.length ? Math.max(...prices) : 0;
+      const averagePrice = prices.length
+        ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)
+        : 0;
+      const airlines = Array.from(
+        new Set(
+          allFlightOffers
+            .map((f: any) => getAirlineName(f))
+            .filter((n: any) => typeof n === "string" && n.trim() !== ""),
+        ),
+      );
+      const hasDirectFlights = allFlightOffers.some(
+        (f: any) => getStopCount(f) === 0,
+      );
+
+      const top_results = topFlightsRaw.slice(0, 3).map((flight: any) => ({
+        flight_id: flight.flightOfferId,
+        price: getPriceNumber(flight),
+        airline: getAirlineName(flight),
+        duration: flight?.journey?.[0]?.duration,
+        stops: getStopCount(flight),
+        tags: Array.isArray(flight.tags) ? flight.tags : [],
+      }));
+
+      const resultsAnalytics: FlightResultsAnalytics = {
+        result_count: allFlightOffers.length,
+        lowest_price: lowestPrice,
+        highest_price: highestPrice,
+        currency: allFlightOffers?.[0]?.currency || "USD",
+        top_results,
+        search_results_summary: {
+          total_flights: allFlightOffers.length,
+          price_range: `${lowestPrice}-${highestPrice}`,
+          airlines,
+          has_direct_flights: hasDirectFlights,
+          average_price: averagePrice,
+        },
+      };
+
+      trackFlightResults(resultsAnalytics);
+    } catch (analyticsError) {
+      console.error("Error tracking flight results analytics:", analyticsError);
+    }
+  }, [readOnly, allFlightOffers, filteredFlights]);
 
   useEffect(() => {
     if (!readOnly) {
@@ -205,98 +306,6 @@ function FlightOptionsContent(args: FlightOptionsProps) {
       return null;
     }
   };
-
-  // Build and send Google Analytics flight_results event when results load
-  const resultsKeyRef = useRef<string>("");
-  useEffect(() => {
-    if (readOnly) return;
-    if (!allFlightOffers || allFlightOffers.length === 0) return;
-
-    // Generate a stable key for the current results set to avoid duplicate firing
-    const key = Array.isArray(allFlightOffers)
-      ? allFlightOffers.map((f: any) => f.flightOfferId || "").join("|")
-      : "";
-
-    if (resultsKeyRef.current === key) return;
-    resultsKeyRef.current = key;
-
-    try {
-      const getPriceNumber = (f: any): number => {
-        if (typeof f?.totalAmount === "number") return f.totalAmount;
-        if (typeof f?.price === "number") return f.price;
-        if (typeof f?.price === "string") {
-          const n = parseFloat(f.price.replace(/[^0-9.]/g, ""));
-          return isNaN(n) ? 0 : n;
-        }
-        return 0;
-      };
-
-      const getAirlineName = (f: any): string =>
-        f?.journey?.[0]?.segments?.[0]?.airlineName ||
-        f?.airline ||
-        f?.airlineName ||
-        "";
-
-      const getStopCount = (f: any): number => {
-        const segs = f?.journey?.[0]?.segments;
-        if (Array.isArray(segs)) return Math.max(0, segs.length - 1);
-        return typeof f?.stops === "number" ? f.stops : 0;
-      };
-
-      const getDurationString = (f: any): string | undefined =>
-        f?.journey?.[0]?.duration;
-
-      const prices: number[] = allFlightOffers
-        .map(getPriceNumber)
-        .filter((n: number) => typeof n === "number");
-      const lowestPrice = prices.length ? Math.min(...prices) : 0;
-      const highestPrice = prices.length ? Math.max(...prices) : 0;
-      const averagePrice = prices.length
-        ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)
-        : 0;
-      const airlines = Array.from(
-        new Set(
-          allFlightOffers
-            .map((f: any) => getAirlineName(f))
-            .filter((n: any) => typeof n === "string" && n.trim() !== ""),
-        ),
-      );
-      const hasDirectFlights = allFlightOffers.some(
-        (f: any) => getStopCount(f) === 0,
-      );
-
-      const topFlightsRaw = [bestFlight, cheapestFlight, fastestFlight].filter(
-        Boolean,
-      ) as any[];
-      const top_results = topFlightsRaw.slice(0, 3).map((flight: any) => ({
-        flight_id: flight.flightOfferId,
-        price: getPriceNumber(flight),
-        airline: getAirlineName(flight),
-        duration: getDurationString(flight),
-        stops: getStopCount(flight),
-        tags: Array.isArray(flight.tags) ? flight.tags : [],
-      }));
-
-      const resultsAnalytics: FlightResultsAnalytics = {
-        result_count: allFlightOffers.length,
-        lowest_price: lowestPrice,
-        highest_price: highestPrice,
-        currency: allFlightOffers?.[0]?.currency || "USD",
-        top_results,
-        search_results_summary: {
-          total_flights: allFlightOffers.length,
-          price_range: `${lowestPrice}-${highestPrice}`,
-          airlines,
-          has_direct_flights: hasDirectFlights,
-          average_price: averagePrice,
-        },
-      };
-
-      trackFlightResults(resultsAnalytics);
-    } catch (analyticsError) {
-      console.error("Error tracking flight results analytics:", analyticsError);
-    }
-  }, [readOnly, allFlightOffers, bestFlight, cheapestFlight, fastestFlight]);
 
   const handleSelectFlight = async (flightOfferId: string) => {
     // Prevent selection in read-only mode
