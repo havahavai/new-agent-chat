@@ -18,6 +18,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://chat.flyo.ai",
+  ),
   title: {
     default: "Flyo - Your personal travel assistant",
     template: "%s | Flyo - Your personal travel assistant",
@@ -55,7 +58,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://flyo.ai",
+    url: "/",
     siteName: "Flyo - Your personal travel assistant",
     title: "Flyo - Your personal travel assistant",
     description:
@@ -84,10 +87,10 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   alternates: {
-    canonical: "https://flyo.ai",
+    canonical: "/",
     languages: {
-      "en-US": "https://flyo.ai/en",
-      "ar-SA": "https://flyo.ai/ar",
+      "en-US": "/en",
+      "ar-SA": "/ar",
     },
   },
 };

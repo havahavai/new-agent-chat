@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     title: "Sign In to Flyo - Your personal travel assistant",
     description:
       "Access your personal travel assistant. Sign in to book flights and manage your trips.",
-    url: "https://flyo.ai/login",
+    url: "/login",
   },
   twitter: {
     title: "Sign In to Flyo - Your personal travel assistant",

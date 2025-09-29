@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface StructuredDataProps {
   data: object;
@@ -14,126 +14,133 @@ export function StructuredData({ data }: StructuredDataProps) {
 }
 
 // Predefined structured data for different page types
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://chat.flyo.ai";
+
 export const organizationStructuredData = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "Flyo",
-  "alternateName": "Flyo - Your personal travel assistant",
-  "url": "https://flyo.ai",
-  "logo": "https://flyo.ai/logo.png",
-  "description": "Your personal travel assistant powered by AI for intelligent flight booking and travel planning",
-  "foundingDate": "2024",
-  "founder": {
+  name: "Flyo",
+  alternateName: "Flyo - Your personal travel assistant",
+  url: BASE_URL,
+  logo: `${BASE_URL}/logo.png`,
+  description:
+    "Your personal travel assistant powered by AI for intelligent flight booking and travel planning",
+  foundingDate: "2024",
+  founder: {
     "@type": "Organization",
-    "name": "HavaHavai"
+    name: "HavaHavai",
   },
-  "sameAs": [
+  sameAs: [
     "https://twitter.com/havahavai",
-    "https://linkedin.com/company/havahavai"
+    "https://linkedin.com/company/havahavai",
   ],
-  "contactPoint": {
+  contactPoint: {
     "@type": "ContactPoint",
-    "contactType": "customer service",
-    "url": "https://flyo.ai/contact"
-  }
+    contactType: "customer service",
+    url: `${BASE_URL}/contact`,
+  },
 };
 
 export const websiteStructuredData = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "name": "Flyo - Your personal travel assistant",
-  "url": "https://flyo.ai",
-  "description": "Your personal travel assistant powered by AI. Book flights and plan travel with smart, personalized recommendations.",
-  "publisher": {
+  name: "Flyo - Your personal travel assistant",
+  url: BASE_URL,
+  description:
+    "Your personal travel assistant powered by AI. Book flights and plan travel with smart, personalized recommendations.",
+  publisher: {
     "@type": "Organization",
-    "name": "HavaHavai"
+    name: "HavaHavai",
   },
-  "potentialAction": {
+  potentialAction: {
     "@type": "SearchAction",
-    "target": {
+    target: {
       "@type": "EntryPoint",
-      "urlTemplate": "https://flyo.ai/?q={search_term_string}"
+      urlTemplate: `${BASE_URL}/?q={search_term_string}`,
     },
-    "query-input": "required name=search_term_string"
-  }
+    "query-input": "required name=search_term_string",
+  },
 };
 
 export const webApplicationStructuredData = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  "name": "Flyo - Your personal travel assistant",
-  "url": "https://flyo.ai",
-  "description": "Your personal travel assistant powered by conversational AI for booking flights and planning trips",
-  "applicationCategory": "TravelApplication",
-  "operatingSystem": "Web Browser",
-  "offers": {
+  name: "Flyo - Your personal travel assistant",
+  url: BASE_URL,
+  description:
+    "Your personal travel assistant powered by conversational AI for booking flights and planning trips",
+  applicationCategory: "TravelApplication",
+  operatingSystem: "Web Browser",
+  offers: {
     "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD",
-    "availability": "https://schema.org/InStock"
+    price: "0",
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
   },
-  "featureList": [
+  featureList: [
     "Personal AI-powered flight search",
     "Conversational booking interface",
     "Personalized travel recommendations",
     "Multi-language support (English & Arabic)",
     "Real-time flight information",
-    "Personal travel planning"
+    "Personal travel planning",
   ],
-  "screenshot": "https://flyo.ai/screenshot.png",
-  "softwareVersion": "1.0",
-  "author": {
+  screenshot: `${BASE_URL}/screenshot.png`,
+  softwareVersion: "1.0",
+  author: {
     "@type": "Organization",
-    "name": "HavaHavai"
-  }
+    name: "HavaHavai",
+  },
 };
 
-export const breadcrumbStructuredData = (items: Array<{ name: string; url: string }>) => ({
+export const breadcrumbStructuredData = (
+  items: Array<{ name: string; url: string }>,
+) => ({
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
-  "itemListElement": items.map((item, index) => ({
+  itemListElement: items.map((item, index) => ({
     "@type": "ListItem",
-    "position": index + 1,
-    "name": item.name,
-    "item": item.url
-  }))
+    position: index + 1,
+    name: item.name,
+    item: item.url,
+  })),
 });
 
 export const faqStructuredData = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
-  "mainEntity": [
+  mainEntity: [
     {
       "@type": "Question",
-      "name": "How does Flyo's personal travel assistant work?",
-      "acceptedAnswer": {
+      name: "How does Flyo's personal travel assistant work?",
+      acceptedAnswer: {
         "@type": "Answer",
-        "text": "Flyo is your personal travel assistant that uses advanced AI to understand your travel needs through natural conversation. Simply chat with your personal assistant to search for flights, get personalized recommendations, and book your perfect trip."
-      }
+        text: "Flyo is your personal travel assistant that uses advanced AI to understand your travel needs through natural conversation. Simply chat with your personal assistant to search for flights, get personalized recommendations, and book your perfect trip.",
+      },
     },
     {
       "@type": "Question",
-      "name": "Is Flyo free to use?",
-      "acceptedAnswer": {
+      name: "Is Flyo free to use?",
+      acceptedAnswer: {
         "@type": "Answer",
-        "text": "Yes, Flyo is free to use. You only pay for the flights you book, with no additional booking fees from our platform."
-      }
+        text: "Yes, Flyo is free to use. You only pay for the flights you book, with no additional booking fees from our platform.",
+      },
     },
     {
       "@type": "Question",
-      "name": "What languages does Flyo support?",
-      "acceptedAnswer": {
+      name: "What languages does Flyo support?",
+      acceptedAnswer: {
         "@type": "Answer",
-        "text": "Flyo currently supports English and Arabic, with plans to add more languages in the future."
-      }
+        text: "Flyo currently supports English and Arabic, with plans to add more languages in the future.",
+      },
     },
     {
       "@type": "Question",
-      "name": "How secure is my booking information?",
-      "acceptedAnswer": {
+      name: "How secure is my booking information?",
+      acceptedAnswer: {
         "@type": "Answer",
-        "text": "Flyo uses industry-standard encryption and security measures to protect your personal and payment information. We comply with international data protection standards."
-      }
-    }
-  ]
+        text: "Flyo uses industry-standard encryption and security measures to protect your personal and payment information. We comply with international data protection standards.",
+      },
+    },
+  ],
 };
