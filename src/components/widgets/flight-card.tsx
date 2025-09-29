@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react"
-import { Info } from "lucide-react"
+import { Info, ChevronDown, ChevronUp } from "lucide-react"
 import { FlightDetailsPopup } from "./flight-details-popup"
 import Image from "next/image"
 import { getCurrencySymbol } from "@/utils/currency-storage";
@@ -50,6 +50,8 @@ interface FlightCardProps {
     isRefundable: boolean;
   };
   tags?: string[];
+  pros?: string[];
+  cons?: string[];
 
   // Legacy props for backward compatibility
   type?: "best" | "cheapest" | "fastest";
@@ -69,6 +71,16 @@ interface FlightCardProps {
   isLoading?: boolean;
   selectedFlightId?: string | null;
   readOnly?: boolean;
+  rankingScore?: number;
+  component_breakdown?: {
+    price?: number;
+    duration?: number;
+    stops?: number;
+    departure_time?: number;
+    airline_pref?: number;
+    past_history?: number;
+    loyalty_bonus?: number;
+  };
 }
 
 // Helper function to get airline logo path
@@ -169,8 +181,11 @@ const getBadgeConfigs = (tags: string[] = [], t: (key: string, fallback?: string
   return badges;
 };
 
+
+
 export function FlightCard(props: FlightCardProps) {
   const [showDetails, setShowDetails] = useState(false)
+  const [showProsConsExpanded, setShowProsConsExpanded] = useState(false)
   const { t } = useTranslations('flightOptionsWidget');
   const {
     isRTLMirrorRequired,
@@ -249,6 +264,19 @@ export function FlightCard(props: FlightCardProps) {
   // Use actual tags from props instead of derived type to show all badges
   // Hide badges in read-only mode
   const badgeConfigs = props.readOnly ? [] : getBadgeConfigs(props.tags || [], t);
+
+
+
+  // Helper function to check if there are pros/cons and get count
+  const getProsConsInfo = () => {
+    const validPros = props.pros?.filter(pro => pro && pro.trim()) || [];
+    const validCons = props.cons?.filter(con => con && con.trim()) || [];
+    const totalCount = validPros.length + validCons.length;
+    const hasContent = totalCount > 0;
+    return { validPros, validCons, totalCount, hasContent };
+  };
+
+  const { validPros, validCons, totalCount, hasContent } = getProsConsInfo();
 
   const handlePriceButtonClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -390,6 +418,54 @@ export function FlightCard(props: FlightCardProps) {
               )}
             </div>
           </div>
+
+          {/* Pros and Cons - Compact View */}
+          {hasContent && (
+            <div className="mt-2">
+              {/* Toggle Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowProsConsExpanded(!showProsConsExpanded);
+                }}
+                className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800 transition-colors duration-200"
+                style={{ fontFamily: "Uber Move, Arial, Helvetica, sans-serif" }}
+              >
+                <span className="text-[10px]">{totalCount} insights</span>
+                {showProsConsExpanded ? (
+                  <ChevronUp className="h-3 w-3" />
+                ) : (
+                  <ChevronDown className="h-3 w-3" />
+                )}
+              </button>
+
+              {/* Expandable Content */}
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  showProsConsExpanded ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'
+                }`}
+              >
+                <div className="flex flex-wrap gap-1" style={{ fontFamily: "Uber Move, Arial, Helvetica, sans-serif" }}>
+                  {validPros.map((pro, index) => (
+                    <div
+                      key={`pro-${index}`}
+                      className="inline-flex items-center rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-800"
+                    >
+                      {pro}
+                    </div>
+                  ))}
+                  {validCons.map((con, index) => (
+                    <div
+                      key={`con-${index}`}
+                      className="inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-800"
+                    >
+                      {con}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           </div>
         </div>
 
@@ -441,6 +517,8 @@ export function FlightCard(props: FlightCardProps) {
                   <span className="truncate">{badgeConfig.text}</span>
                 </div>
               ))}
+
+            {/* Component breakdown is handled separately in AllFlightsSheet for compact mode */}
           </div>
         </div>
 
@@ -483,6 +561,54 @@ export function FlightCard(props: FlightCardProps) {
             </div>
           </div>
         </div>
+
+        {/* Pros and Cons - Full View */}
+        {hasContent && (
+          <div className="mb-3">
+            {/* Toggle Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowProsConsExpanded(!showProsConsExpanded);
+              }}
+              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-800 transition-colors duration-200 mb-2"
+              style={{ fontFamily: "Uber Move, Arial, Helvetica, sans-serif" }}
+            >
+              <span className="text-xs">{totalCount} insights</span>
+              {showProsConsExpanded ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+
+            {/* Expandable Content */}
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                showProsConsExpanded ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <div className="flex flex-wrap gap-1.5" style={{ fontFamily: "Uber Move, Arial, Helvetica, sans-serif" }}>
+                {validPros.map((pro, index) => (
+                  <div
+                    key={`pro-${index}`}
+                    className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800"
+                  >
+                    {pro}
+                  </div>
+                ))}
+                {validCons.map((con, index) => (
+                  <div
+                    key={`con-${index}`}
+                    className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800"
+                  >
+                    {con}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 flex items-center justify-between pb-3">
           <button

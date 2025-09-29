@@ -91,6 +91,15 @@ export interface FlightData {
     };
   };
   rankingScore?: number;
+  component_breakdown?: {
+    price?: number;
+    duration?: number;
+    stops?: number;
+    departure_time?: number;
+    airline_pref?: number;
+    past_history?: number;
+    loyalty_bonus?: number;
+  };
   pros?: string[];
   cons?: string[];
   tags?: string[];
@@ -126,6 +135,15 @@ export interface TransformedFlightData {
   };
   baggage?: any;
   rankingScore?: number;
+  component_breakdown?: {
+    price?: number;
+    duration?: number;
+    stops?: number;
+    departure_time?: number;
+    airline_pref?: number;
+    past_history?: number;
+    loyalty_bonus?: number;
+  };
   pros?: string[];
   cons?: string[];
   tags?: string[];
@@ -225,6 +243,7 @@ export function transformFlightDataForFiltering(
     offerRules: flight.offerRules,
     baggage: flight.baggage,
     rankingScore: flight.rankingScore,
+    component_breakdown: flight.component_breakdown,
     pros: flight.pros,
     cons: flight.cons,
     tags: flight.tags,
@@ -384,6 +403,56 @@ export function generateCustomTags(
       flightsWithRankingScore.find(
         (flight) => flight.rankingScore === highestRankingScore,
       ) || null;
+  } else {
+    // Fallback logic when no rankingScore is available
+    // Use a balanced approach: cheapest among the fastest 50% of flights
+    const durations = validFlights.map((flight) => {
+      if (
+        flight.journey &&
+        flight.journey.length > 0 &&
+        flight.journey[0].duration
+      ) {
+        return parseISO8601Duration(flight.journey[0].duration);
+      }
+      if (flight.duration) {
+        return parseISO8601Duration(flight.duration);
+      }
+      return Infinity;
+    });
+
+    const validDurations = durations.filter((d) => d !== Infinity);
+    if (validDurations.length > 0) {
+      const sortedDurations = [...validDurations].sort((a, b) => a - b);
+      const medianDuration =
+        sortedDurations[Math.floor(sortedDurations.length / 2)];
+
+      // Get flights that are faster than or equal to median duration
+      const reasonablyFastFlights = validFlights.filter((_, index) => {
+        const flightDuration = durations[index];
+        return flightDuration !== Infinity && flightDuration <= medianDuration;
+      });
+
+      if (reasonablyFastFlights.length > 0) {
+        // Among reasonably fast flights, pick the cheapest
+        const cheapestPrice = Math.min(
+          ...reasonablyFastFlights.map((flight) => flight.totalAmount),
+        );
+        bestFlight =
+          reasonablyFastFlights.find(
+            (flight) => flight.totalAmount === cheapestPrice,
+          ) || null;
+      }
+    }
+
+    // If still no best flight found, fallback to cheapest overall
+    if (!bestFlight && validFlights.length > 0) {
+      const cheapestPrice = Math.min(
+        ...validFlights.map((flight) => flight.totalAmount),
+      );
+      bestFlight =
+        validFlights.find((flight) => flight.totalAmount === cheapestPrice) ||
+        null;
+    }
   }
 
   // Find cheapest flights and select one using ranking score as tie-breaker
@@ -502,14 +571,14 @@ export function generateCustomTags(
 // Sort flights based on criteria
 export function sortFlights(
   flights: TransformedFlightData[],
-  sortBy: "cheapest" | "fastest",
+  sortBy: "cheapest" | "fastest" | "best",
 ): TransformedFlightData[] {
   return [...flights].sort((a, b) => {
     if (!a || !b) return 0;
 
     if (sortBy === "cheapest") {
       return a.totalAmount - b.totalAmount;
-    } else {
+    } else if (sortBy === "fastest") {
       // Parse durations for accurate fastest sorting
       const durationA =
         a.journey && a.journey.length > 0 && a.journey[0].duration
@@ -522,6 +591,19 @@ export function sortFlights(
           : parseISO8601Duration(b.duration || "");
 
       return durationA - durationB;
+    } else if (sortBy === "best") {
+      // Sort by ranking score (highest first), fallback to price if no ranking score
+      const scoreA = typeof a.rankingScore === "number" ? a.rankingScore : -1;
+      const scoreB = typeof b.rankingScore === "number" ? b.rankingScore : -1;
+
+      if (scoreA !== scoreB) {
+        return scoreB - scoreA; // Higher ranking score first
+      }
+
+      // If ranking scores are equal (or both missing), fallback to price
+      return a.totalAmount - b.totalAmount;
     }
+
+    return 0;
   });
 }

@@ -42,6 +42,15 @@ interface FlightOption {
   segments?: FlightSegment[];
   offerRules?: FlightOfferRules;
   rankingScore?: number;
+  component_breakdown?: {
+    price?: number;
+    duration?: number;
+    stops?: number;
+    departure_time?: number;
+    airline_pref?: number;
+    past_history?: number;
+    loyalty_bonus?: number;
+  };
   pros?: string[];
   cons?: string[];
   reason?: string; // New field to control reason box display
@@ -68,6 +77,15 @@ interface FlightJourney {
   segments: FlightSegment[];
   offerRules: FlightOfferRules;
   rankingScore: number;
+  component_breakdown?: {
+    price?: number;
+    duration?: number;
+    stops?: number;
+    departure_time?: number;
+    airline_pref?: number;
+    past_history?: number;
+    loyalty_bonus?: number;
+  };
   pros: string[];
   cons: string[];
   reason?: string; // New field to control reason box display

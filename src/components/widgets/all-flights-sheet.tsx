@@ -16,7 +16,7 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Filter, ArrowUpDown } from "lucide-react";
+import { Filter, ArrowUpDown, Star, BarChart3, ChevronDown, ChevronUp } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +53,7 @@ export function AllFlightsSheet({
   const [selectedFlight, setSelectedFlight] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showExpandedAirlines, setShowExpandedAirlines] = useState(false);
+  const [expandedBreakdowns, setExpandedBreakdowns] = useState<Set<string>>(new Set());
 
   // Initialize translations and RTL mirror detection
   const { t } = useTranslations("flightOptionsWidget");
@@ -184,6 +185,64 @@ export function AllFlightsSheet({
     setOpen(false);
   };
 
+  // Helper function to filter and format component breakdown
+  const getFilteredComponentBreakdown = (component_breakdown?: {
+    price?: number;
+    duration?: number;
+    stops?: number;
+    departure_time?: number;
+    airline_pref?: number;
+    past_history?: number;
+    loyalty_bonus?: number;
+  }, rankingScore?: number) => {
+    const componentLabels: { [key: string]: string } = {
+      rankingScore: t('componentBreakdown.rankingScore', 'Overall Score'),
+      price: t('componentBreakdown.price', 'Price Competitiveness'),
+      duration: t('componentBreakdown.duration', 'Duration Score'),
+      stops: t('componentBreakdown.stops', 'Stops Score'),
+      departure_time: t('componentBreakdown.departureTime', 'Departure Time Score'),
+      airline_pref: t('componentBreakdown.airlinePreference', 'Airline Preference'),
+      past_history: t('componentBreakdown.pastHistory', 'Past History'),
+      loyalty_bonus: t('componentBreakdown.loyaltyBonus', 'Loyalty Bonus')
+    };
+
+    const breakdown = [];
+
+    // Add rankingScore first if it exists and is valid
+    if (rankingScore && typeof rankingScore === 'number' && rankingScore > 0) {
+      breakdown.push({
+        label: componentLabels.rankingScore,
+        value: rankingScore.toFixed(1),
+      });
+    }
+
+    // Add component breakdown items if they exist
+    if (component_breakdown) {
+      const componentItems = Object.entries(component_breakdown)
+        .filter(([_, value]) => value && typeof value === 'number' && value !== 0)
+        .map(([key, value]) => ({
+          label: componentLabels[key] || key,
+          value: typeof value === 'number' ? value.toFixed(1) : value,
+        }));
+      breakdown.push(...componentItems);
+    }
+
+    return breakdown;
+  };
+
+  // Toggle component breakdown expansion
+  const toggleBreakdownExpansion = (flightId: string) => {
+    setExpandedBreakdowns(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(flightId)) {
+        newSet.delete(flightId);
+      } else {
+        newSet.add(flightId);
+      }
+      return newSet;
+    });
+  };
+
   // Helper functions to transform new data structure to legacy format for FlightCard
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString("en-US", {
@@ -241,6 +300,10 @@ export function AllFlightsSheet({
       journey: flight.journey,
       offerRules: flight.offerRules,
       tags: flight.tags,
+      rankingScore: flight.rankingScore,
+      pros: flight.pros,
+      cons: flight.cons,
+      component_breakdown: flight.component_breakdown,
     };
   };
 
@@ -249,6 +312,11 @@ export function AllFlightsSheet({
     flightData.length > 0
       ? flightData.map(transformFlightData).filter(Boolean)
       : [];
+
+  // Check if rankingScore is available in the first flight to show Best sort option
+  const hasRankingScore = flightData.length > 0 &&
+    typeof flightData[0]?.rankingScore === "number" &&
+    flightData[0].rankingScore > 0;
 
   const departureTimeSlots = [
     { label: t("departureTimeSlots.early"), value: "early" },
@@ -306,8 +374,32 @@ export function AllFlightsSheet({
 
     if (filterState.sortBy === "cheapest") {
       return a.totalAmount - b.totalAmount;
+    } else if (filterState.sortBy === "fastest") {
+      // Parse durations for accurate fastest sorting
+      const parseTime = (timeStr: string) => {
+        const match = timeStr.match(/(\d+)h\s*(\d+)m/);
+        if (match) {
+          return parseInt(match[1]) * 60 + parseInt(match[2]);
+        }
+        return 0;
+      };
+
+      const durationA = parseTime(a.duration || "0h 0m");
+      const durationB = parseTime(b.duration || "0h 0m");
+      return durationA - durationB;
+    } else if (filterState.sortBy === "best") {
+      // Sort by ranking score (highest first), fallback to price if no ranking score
+      const scoreA = typeof a.rankingScore === "number" ? a.rankingScore : -1;
+      const scoreB = typeof b.rankingScore === "number" ? b.rankingScore : -1;
+
+      if (scoreA !== scoreB) {
+        return scoreB - scoreA; // Higher ranking score first
+      }
+
+      // If ranking scores are equal (or both missing), fallback to price
+      return a.totalAmount - b.totalAmount;
     } else {
-      // For fastest, we'd need to parse duration - for now, sort by total amount as fallback
+      // Default fallback
       return a.totalAmount - b.totalAmount;
     }
   });
@@ -358,6 +450,17 @@ export function AllFlightsSheet({
                         )}
                       </Button>
                     )}
+                    {hasRankingScore && (
+                      <Button
+                        variant={filterState.sortBy === "best" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSortBy("best")}
+                        className="flex items-center gap-2"
+                      >
+                        <Star className="h-4 w-4" />
+                        {t("tabs.best", "Best")}
+                      </Button>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -369,7 +472,11 @@ export function AllFlightsSheet({
                           {t("buttons.sort", "Sort")}:{" "}
                           {filterState.sortBy === "cheapest"
                             ? t("tabs.cheapest")
-                            : t("tabs.fastest")}
+                            : filterState.sortBy === "fastest"
+                            ? t("tabs.fastest")
+                            : filterState.sortBy === "best"
+                            ? t("tabs.best")
+                            : t("tabs.cheapest")}
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start">
@@ -379,6 +486,11 @@ export function AllFlightsSheet({
                         <DropdownMenuItem onClick={() => setSortBy("fastest")}>
                           {t("buttons.fastestFirst", "Fastest First")}
                         </DropdownMenuItem>
+                        {hasRankingScore && (
+                          <DropdownMenuItem onClick={() => setSortBy("best")}>
+                            {t("buttons.bestFirst", "Best First")}
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -406,22 +518,61 @@ export function AllFlightsSheet({
                     {t("messages.noMatchingFlights")}
                   </div>
                 ) : (
-                  sortedFlights.map((flight, index) => (
-                    <div
-                      key={index}
-                      className="rounded-lg border bg-white shadow-sm"
-                    >
-                      <div className="px-2 py-1">
-                        <FlightCard
-                          {...flight}
-                          compact
-                          onSelect={handleSelectFlight}
-                          isLoading={isLoading}
-                          selectedFlightId={selectedFlight}
-                        />
+                  sortedFlights.map((flight, index) => {
+                    if (!flight) return null;
+
+                    const componentBreakdown = getFilteredComponentBreakdown(flight.component_breakdown, flight.rankingScore);
+                    const isBreakdownExpanded = expandedBreakdowns.has(flight.flightOfferId);
+
+                    return (
+                      <div
+                        key={index}
+                        className="rounded-lg border bg-white shadow-sm"
+                      >
+                        <div className="px-2 py-1">
+                          <FlightCard
+                            {...flight}
+                            compact
+                            onSelect={handleSelectFlight}
+                            isLoading={isLoading}
+                            selectedFlightId={selectedFlight}
+
+                          />
+
+                          {/* Component Breakdown Expandable Section */}
+                          {componentBreakdown.length > 0 && (
+                            <div className="px-1 pb-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleBreakdownExpansion(flight.flightOfferId)}
+                                className="h-auto p-1 text-xs text-gray-600 hover:text-gray-800 flex items-center gap-1"
+                              >
+                                <BarChart3 className="h-3 w-3" />
+                                {t('buttons.componentBreakdown', 'Score Breakdown')}
+                                {isBreakdownExpanded ? (
+                                  <ChevronUp className="h-3 w-3" />
+                                ) : (
+                                  <ChevronDown className="h-3 w-3" />
+                                )}
+                              </Button>
+
+                              {isBreakdownExpanded && (
+                                <div className="mt-2 space-y-1 bg-gray-50 rounded p-2">
+                                  {componentBreakdown.map((component, idx) => (
+                                    <div key={idx} className="flex justify-between items-center text-xs">
+                                      <span className="text-gray-600">{component.label}</span>
+                                      <span className="font-medium text-gray-800">{component.value}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
