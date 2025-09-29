@@ -17,7 +17,7 @@ export class ThreadActor {
         await op();
       })
       .catch((err) => {
-        console.warn("[ACTOR] op failed", threadId, err);
+        console.warn("[ACTOR] op failed", threadId, err.message);
       })
       .finally(() => {
         this.lastStartedAt.delete(threadId);

@@ -5,6 +5,10 @@ const nextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === 'production' ? { exclude: ['error'] } : false,
+  },
   transpilePackages: ['react-phone-input-2'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
