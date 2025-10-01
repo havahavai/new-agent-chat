@@ -16,7 +16,7 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Filter, ArrowUpDown } from "lucide-react";
+import { Filter, ArrowUpDown, Star } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,9 +31,7 @@ import {
 } from "@/components/widgets/flight-filter-utils";
 import { useFlightFilter } from "./flight-filter-context";
 import { useTranslations } from "@/hooks/useTranslations";
-import { useFlightComponentRTL } from "@/hooks/useRTLMirror";
 import { cn } from "@/lib/utils";
-import "@/styles/rtl-mirror.css";
 
 interface AllFlightsSheetProps {
   children: React.ReactNode;
@@ -53,15 +51,10 @@ export function AllFlightsSheet({
   const [selectedFlight, setSelectedFlight] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showExpandedAirlines, setShowExpandedAirlines] = useState(false);
+  const [viewMode, setViewMode] = useState<"recommended" | "all">("recommended");
 
-  // Initialize translations and RTL mirror detection
+  // Initialize translations
   const { t } = useTranslations("flightOptionsWidget");
-  const {
-    isRTLMirrorRequired,
-    isLoading: isRTLLoading,
-    mirrorClasses,
-    mirrorStyles,
-  } = useFlightComponentRTL();
 
   // Use filter context for state management
   const {
@@ -241,6 +234,11 @@ export function AllFlightsSheet({
       journey: flight.journey,
       offerRules: flight.offerRules,
       tags: flight.tags,
+      rankingScore: flight.rankingScore,
+      pros: flight.pros,
+      cons: flight.cons,
+      insights: flight.insights,
+      component_breakdown: flight.component_breakdown,
     };
   };
 
@@ -249,6 +247,20 @@ export function AllFlightsSheet({
     flightData.length > 0
       ? flightData.map(transformFlightData).filter(Boolean)
       : [];
+
+  // Check if rankingScore is available in any flight to show Recommended filter option
+  const hasRankingScore = flightData.some(
+    (flight) => flight && typeof flight.rankingScore === "number" && flight.rankingScore > 0
+  );
+
+  // Set default view mode when sheet opens
+  useEffect(() => {
+    if (open && hasRankingScore) {
+      setViewMode("recommended");
+    } else if (open && !hasRankingScore) {
+      setViewMode("all");
+    }
+  }, [open, hasRankingScore]);
 
   const departureTimeSlots = [
     { label: t("departureTimeSlots.early"), value: "early" },
@@ -263,8 +275,11 @@ export function AllFlightsSheet({
   const filteredFlights = allFlights.filter((flight) => {
     if (!flight) return false;
 
-    // Additional UI-level filtering can be added here if needed
-    // For now, just use the data as-is since it's already filtered by the context
+    // Filter by view mode: "recommended" shows only flights with rankingScore, "all" shows everything
+    if (viewMode === "recommended") {
+      const hasScore = typeof flight.rankingScore === "number" && flight.rankingScore > 0;
+      if (!hasScore) return false;
+    }
 
     // User-interactive Airline filter using context state
     const airlineMatch =
@@ -304,10 +319,58 @@ export function AllFlightsSheet({
   const sortedFlights = [...filteredFlights].sort((a, b) => {
     if (!a || !b) return 0; // if either is null, treat them as equal
 
+    // When in "recommended" mode, always sort by rankingScore descending (highest first)
+    if (viewMode === "recommended") {
+      const scoreA = typeof a.rankingScore === "number" ? a.rankingScore : -1;
+      const scoreB = typeof b.rankingScore === "number" ? b.rankingScore : -1;
+      return scoreB - scoreA; // Higher ranking score first
+    }
+
+    // When in "all" mode, use the selected sort option
     if (filterState.sortBy === "cheapest") {
       return a.totalAmount - b.totalAmount;
+    } else if (filterState.sortBy === "fastest") {
+      // Calculate actual journey duration from departure and arrival timestamps
+      const calculateJourneyDuration = (flight: any): number => {
+        if (!flight.journey || flight.journey.length === 0) return Infinity;
+
+        const firstJourney = flight.journey[0];
+        const departureDate = firstJourney.departure?.date;
+        const arrivalDate = firstJourney.arrival?.date;
+
+        if (!departureDate || !arrivalDate) return Infinity;
+
+        try {
+          // Parse timestamps in format "YYYY-MM-DD HH:MM"
+          const departureTime = new Date(departureDate.replace(' ', 'T')).getTime();
+          const arrivalTime = new Date(arrivalDate.replace(' ', 'T')).getTime();
+
+          if (isNaN(departureTime) || isNaN(arrivalTime)) return Infinity;
+
+          // Return duration in minutes
+          return (arrivalTime - departureTime) / (1000 * 60);
+        } catch (error) {
+          console.error('Error calculating journey duration:', error);
+          return Infinity;
+        }
+      };
+
+      const durationA = calculateJourneyDuration(a);
+      const durationB = calculateJourneyDuration(b);
+      return durationA - durationB;
+    } else if (filterState.sortBy === "best") {
+      // Sort by ranking score (highest first), fallback to price if no ranking score
+      const scoreA = typeof a.rankingScore === "number" ? a.rankingScore : -1;
+      const scoreB = typeof b.rankingScore === "number" ? b.rankingScore : -1;
+
+      if (scoreA !== scoreB) {
+        return scoreB - scoreA; // Higher ranking score first
+      }
+
+      // If ranking scores are equal (or both missing), fallback to price
+      return a.totalAmount - b.totalAmount;
     } else {
-      // For fastest, we'd need to parse duration - for now, sort by total amount as fallback
+      // Default fallback
       return a.totalAmount - b.totalAmount;
     }
   });
@@ -338,7 +401,7 @@ export function AllFlightsSheet({
 
               <div className="mb-3 px-4">
                 <div className="mb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {hasAvailableFilters && (
                       <Button
                         variant="outline"
@@ -358,29 +421,64 @@ export function AllFlightsSheet({
                         )}
                       </Button>
                     )}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                    {hasRankingScore && (
+                      <>
                         <Button
-                          variant="outline"
+                          variant={viewMode === "recommended" ? "default" : "outline"}
                           size="sm"
-                          className="flex items-center gap-2 bg-transparent"
+                          onClick={() => setViewMode("recommended")}
+                          className="flex items-center gap-2"
                         >
-                          <ArrowUpDown className="h-4 w-4" />
-                          {t("buttons.sort", "Sort")}:{" "}
-                          {filterState.sortBy === "cheapest"
-                            ? t("tabs.cheapest")
-                            : t("tabs.fastest")}
+                          <Star className="h-4 w-4" />
+                          {t("tabs.recommended", "Recommended")}
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuItem onClick={() => setSortBy("cheapest")}>
-                          {t("buttons.cheapestFirst", "Cheapest First")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setSortBy("fastest")}>
-                          {t("buttons.fastestFirst", "Fastest First")}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                        <Button
+                          variant={viewMode === "all" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            setViewMode("all");
+                            setSortBy("cheapest");
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          {t("buttons.seeAllFlights", "See All Flights")}
+                        </Button>
+                      </>
+                    )}
+                    {viewMode === "all" && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2 bg-transparent"
+                          >
+                            <ArrowUpDown className="h-4 w-4" />
+                            {t("buttons.sort", "Sort")}:{" "}
+                            {filterState.sortBy === "cheapest"
+                              ? t("tabs.cheapest")
+                              : filterState.sortBy === "fastest"
+                              ? t("tabs.fastest")
+                              : filterState.sortBy === "best"
+                              ? t("tabs.best")
+                              : t("tabs.cheapest")}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuItem onClick={() => setSortBy("cheapest")}>
+                            {t("buttons.cheapestFirst", "Cheapest First")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setSortBy("fastest")}>
+                            {t("buttons.fastestFirst", "Fastest First")}
+                          </DropdownMenuItem>
+                          {hasRankingScore && (
+                            <DropdownMenuItem onClick={() => setSortBy("best")}>
+                              {t("buttons.bestFirst", "Best First")}
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                   {activeFiltersCount > 0 && (
                     <Button
@@ -406,22 +504,58 @@ export function AllFlightsSheet({
                     {t("messages.noMatchingFlights")}
                   </div>
                 ) : (
-                  sortedFlights.map((flight, index) => (
-                    <div
-                      key={index}
-                      className="rounded-lg border bg-white shadow-sm"
-                    >
-                      <div className="px-2 py-1">
-                        <FlightCard
-                          {...flight}
-                          compact
-                          onSelect={handleSelectFlight}
-                          isLoading={isLoading}
-                          selectedFlightId={selectedFlight}
-                        />
+                  sortedFlights.map((flight, index) => {
+                    if (!flight) return null;
+
+                    return (
+                      <div
+                        key={index}
+                        className="rounded-lg border bg-white shadow-sm"
+                      >
+                        <div className="px-2 py-1">
+                          <FlightCard
+                            {...flight}
+                            compact
+                            onSelect={handleSelectFlight}
+                            isLoading={isLoading}
+                            selectedFlightId={selectedFlight}
+
+                          />
+
+                          {/* Component Breakdown Expandable Section */}
+                          {/* {componentBreakdown.length > 0 && (
+                            <div className="px-1 pb-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleBreakdownExpansion(flight.flightOfferId)}
+                                className="h-auto p-1 text-xs text-gray-600 hover:text-gray-800 flex items-center gap-1"
+                              >
+                                <BarChart3 className="h-3 w-3" />
+                                {t('buttons.componentBreakdown', 'Score Breakdown')}
+                                {isBreakdownExpanded ? (
+                                  <ChevronUp className="h-3 w-3" />
+                                ) : (
+                                  <ChevronDown className="h-3 w-3" />
+                                )}
+                              </Button>
+
+                              {isBreakdownExpanded && (
+                                <div className="mt-2 space-y-1 bg-gray-50 rounded p-2">
+                                  {componentBreakdown.map((component, idx) => (
+                                    <div key={idx} className="flex justify-between items-center text-xs">
+                                      <span className="text-gray-600">{component.label}</span>
+                                      <span className="font-medium text-gray-800">{component.value}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )} */}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

@@ -40,7 +40,7 @@ interface FlightFilterContextType {
   setSelectedAirlines: (airlines: string[]) => void;
   setMaxStops: (stops: number) => void;
   setSelectedDepartureTime: (times: string[]) => void;
-  setSortBy: (sort: "cheapest" | "fastest") => void;
+  setSortBy: (sort: "cheapest" | "fastest" | "best") => void;
   clearAllFilters: () => void;
 
   // Helper functions
@@ -90,7 +90,7 @@ export function FlightFilterProvider({
   const [selectedDepartureTime, setSelectedDepartureTime] = useState<string[]>(
     [],
   );
-  const [sortBy, setSortBy] = useState<"cheapest" | "fastest">("cheapest");
+  const [sortBy, setSortBy] = useState<"cheapest" | "fastest" | "best">("cheapest");
 
   // Update price range when flight data changes
   useEffect(() => {

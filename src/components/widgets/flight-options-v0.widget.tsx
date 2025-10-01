@@ -477,7 +477,7 @@ function FlightOptionsContent(args: FlightOptionsProps) {
                     className="h-[calc(100%-0.05rem)] min-w-0 flex-1 basis-0 truncate rounded-lg py-0 text-center leading-none"
                     value="best"
                   >
-                    {t("tabs.best", "Best")}
+                    {t("tabs.best", "Recommended")}
                   </TabsTrigger>
                 )}
                 {cheapestFlight && (
@@ -574,7 +574,7 @@ function FlightOptionsContent(args: FlightOptionsProps) {
                 variant="outline"
                 className="w-full md:w-auto"
               >
-                {t("buttons.showAllFlights", "Show all flights")}
+                {t("buttons.showAllFlights", "See Recommended Flights")}
               </Button>
             </AllFlightsSheet>
           </div>
