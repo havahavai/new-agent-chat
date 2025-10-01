@@ -16,7 +16,7 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Filter, ArrowUpDown, Star, BarChart3, ChevronDown, ChevronUp } from "lucide-react";
+import { Filter, ArrowUpDown, Star } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,9 +31,7 @@ import {
 } from "@/components/widgets/flight-filter-utils";
 import { useFlightFilter } from "./flight-filter-context";
 import { useTranslations } from "@/hooks/useTranslations";
-import { useFlightComponentRTL } from "@/hooks/useRTLMirror";
 import { cn } from "@/lib/utils";
-import "@/styles/rtl-mirror.css";
 
 interface AllFlightsSheetProps {
   children: React.ReactNode;
@@ -53,17 +51,10 @@ export function AllFlightsSheet({
   const [selectedFlight, setSelectedFlight] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showExpandedAirlines, setShowExpandedAirlines] = useState(false);
-  const [expandedBreakdowns, setExpandedBreakdowns] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"recommended" | "all">("recommended");
 
-  // Initialize translations and RTL mirror detection
+  // Initialize translations
   const { t } = useTranslations("flightOptionsWidget");
-  const {
-    isRTLMirrorRequired,
-    isLoading: isRTLLoading,
-    mirrorClasses,
-    mirrorStyles,
-  } = useFlightComponentRTL();
 
   // Use filter context for state management
   const {
@@ -184,64 +175,6 @@ export function AllFlightsSheet({
     }
     // Close the sheet after selection
     setOpen(false);
-  };
-
-  // Helper function to filter and format component breakdown
-  const getFilteredComponentBreakdown = (component_breakdown?: {
-    price?: number;
-    duration?: number;
-    stops?: number;
-    departure_time?: number;
-    airline_pref?: number;
-    past_history?: number;
-    loyalty_bonus?: number;
-  }, rankingScore?: number) => {
-    const componentLabels: { [key: string]: string } = {
-      rankingScore: t('componentBreakdown.rankingScore', 'Overall Score'),
-      price: t('componentBreakdown.price', 'Price Competitiveness'),
-      duration: t('componentBreakdown.duration', 'Duration Score'),
-      stops: t('componentBreakdown.stops', 'Stops Score'),
-      departure_time: t('componentBreakdown.departureTime', 'Departure Time Score'),
-      airline_pref: t('componentBreakdown.airlinePreference', 'Airline Preference'),
-      past_history: t('componentBreakdown.pastHistory', 'Past History'),
-      loyalty_bonus: t('componentBreakdown.loyaltyBonus', 'Loyalty Bonus')
-    };
-
-    const breakdown = [];
-
-    // Add rankingScore first if it exists and is valid
-    if (rankingScore && typeof rankingScore === 'number' && rankingScore > 0) {
-      breakdown.push({
-        label: componentLabels.rankingScore,
-        value: rankingScore.toFixed(1),
-      });
-    }
-
-    // Add component breakdown items if they exist
-    if (component_breakdown) {
-      const componentItems = Object.entries(component_breakdown)
-        .filter(([_, value]) => value && typeof value === 'number' && value !== 0)
-        .map(([key, value]) => ({
-          label: componentLabels[key] || key,
-          value: typeof value === 'number' ? value.toFixed(1) : value,
-        }));
-      breakdown.push(...componentItems);
-    }
-
-    return breakdown;
-  };
-
-  // Toggle component breakdown expansion
-  const toggleBreakdownExpansion = (flightId: string) => {
-    setExpandedBreakdowns(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(flightId)) {
-        newSet.delete(flightId);
-      } else {
-        newSet.add(flightId);
-      }
-      return newSet;
-    });
   };
 
   // Helper functions to transform new data structure to legacy format for FlightCard
@@ -573,9 +506,6 @@ export function AllFlightsSheet({
                 ) : (
                   sortedFlights.map((flight, index) => {
                     if (!flight) return null;
-
-                    const componentBreakdown = getFilteredComponentBreakdown(flight.component_breakdown, flight.rankingScore);
-                    const isBreakdownExpanded = expandedBreakdowns.has(flight.flightOfferId);
 
                     return (
                       <div
