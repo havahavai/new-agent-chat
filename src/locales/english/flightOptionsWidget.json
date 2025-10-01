@@ -6,13 +6,13 @@
     "departure": "Departure:"
   },
   "tabs": {
-    "best": "Best",
+    "best": "Recommended",
     "cheapest": "Cheapest",
     "fastest": "Fastest"
   },
   "buttons": {
     "filters": "Filters",
-    "showAllFlights": "Show all flights",
+    "showAllFlights": "See Recommended Flights",
     "clearAll": "Clear all",
     "applyFilters": "Apply Filters",
     "showLessAirlines": "Show less airlines",
