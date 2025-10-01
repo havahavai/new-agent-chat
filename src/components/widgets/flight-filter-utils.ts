@@ -156,7 +156,7 @@ export interface FlightFilterState {
   selectedAirlines: string[];
   maxStops: number;
   selectedDepartureTime: string[];
-  sortBy: "cheapest" | "fastest";
+  sortBy: "cheapest" | "fastest" | "best";
 }
 
 export interface FlightFilters extends FlightFilterState {
