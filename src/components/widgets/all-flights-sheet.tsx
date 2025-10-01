@@ -304,6 +304,7 @@ export function AllFlightsSheet({
       rankingScore: flight.rankingScore,
       pros: flight.pros,
       cons: flight.cons,
+      insights: flight.insights,
       component_breakdown: flight.component_breakdown,
     };
   };
@@ -501,7 +502,10 @@ export function AllFlightsSheet({
                         <Button
                           variant={viewMode === "all" ? "default" : "outline"}
                           size="sm"
-                          onClick={() => setViewMode("all")}
+                          onClick={() => {
+                            setViewMode("all");
+                            setSortBy("cheapest");
+                          }}
                           className="flex items-center gap-2"
                         >
                           {t("buttons.seeAllFlights", "See All Flights")}
@@ -589,7 +593,7 @@ export function AllFlightsSheet({
                           />
 
                           {/* Component Breakdown Expandable Section */}
-                          {componentBreakdown.length > 0 && (
+                          {/* {componentBreakdown.length > 0 && (
                             <div className="px-1 pb-2">
                               <Button
                                 variant="ghost"
@@ -617,7 +621,7 @@ export function AllFlightsSheet({
                                 </div>
                               )}
                             </div>
-                          )}
+                          )} */}
                         </div>
                       </div>
                     );

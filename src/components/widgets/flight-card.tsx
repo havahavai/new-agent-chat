@@ -52,6 +52,7 @@ interface FlightCardProps {
   tags?: string[];
   pros?: string[];
   cons?: string[];
+  insights?: string[];
 
   // Legacy props for backward compatibility
   type?: "best" | "cheapest" | "fastest";
@@ -308,7 +309,7 @@ export function FlightCard(props: FlightCardProps) {
       <>
         <div
           className={cn(
-            `px-3 py-2 transition-colors duration-200 ${
+            `transition-colors duration-200 ${
               isSelected ? 'bg-blue-50 border-blue-200' : ''
             } ${props.isLoading ? 'opacity-50' : ''}`,
             // Container-level RTL transformation
@@ -321,8 +322,17 @@ export function FlightCard(props: FlightCardProps) {
             className={cn("w-full", mirrorClasses.content)}
             style={mirrorStyles.content}
           >
+          {/* Insights Banner - Top-Left Corner Badge */}
+          {props.insights && props.insights.length > 0 && props.insights[0] && props.insights[0].trim() && (
+            <div className="mb-2">
+              <span className="inline-block bg-blue-50 px-2 py-1 text-xs text-gray-800 rounded-br-md" style={{ fontFamily: "Uber Move, Arial, Helvetica, sans-serif" }}>
+                {props.insights[0]}
+              </span>
+            </div>
+          )}
+
           {/* Main Flight Row */}
-          <div className="flex min-h-[60px] items-center gap-3">
+          <div className="flex min-h-[60px] items-center gap-3 px-3">
             {/* Left: Airline Info */}
             <div className="flex flex-col items-center gap-0.5">
               {/* Airline Logo */}
@@ -421,7 +431,7 @@ export function FlightCard(props: FlightCardProps) {
 
           {/* Pros and Cons - Compact View */}
           {hasContent && (
-            <div className="mt-2">
+            <div className="mt-2 px-3">
               {/* Toggle Button */}
               <button
                 onClick={(e) => {
@@ -482,7 +492,7 @@ export function FlightCard(props: FlightCardProps) {
     <>
       <div
         className={cn(
-          `px-2 py-1 transition-all duration-200 rounded-lg ${
+          `transition-all duration-200 rounded-lg ${
             isSelected ? 'bg-blue-50 border border-blue-200' : ''
           } ${props.isLoading ? 'opacity-50' : ''}`,
           // Container-level RTL transformation
@@ -495,7 +505,16 @@ export function FlightCard(props: FlightCardProps) {
           className={cn("w-full", mirrorClasses.content)}
           style={mirrorStyles.content}
         >
-        <div className="flex items-center justify-between gap-0.5 mb-4 pt-3">
+        {/* Insights Banner - Top-Left Corner Badge */}
+        {props.insights && props.insights.length > 0 && props.insights[0] && props.insights[0].trim() && (
+          <div className="mb-3">
+            <span className="inline-block bg-blue-50 px-2 py-1 text-sm text-gray-800 rounded-br-md" style={{ fontFamily: "Uber Move, Arial, Helvetica, sans-serif" }}>
+              {props.insights[0]}
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-0.5 mb-4 pt-3 px-2">
           <div className="flex items-center gap-2">
             <AirlineLogo
               airlineIata={airlineIata}
@@ -522,7 +541,7 @@ export function FlightCard(props: FlightCardProps) {
           </div>
         </div>
 
-        <div className="mb-3">
+        <div className="mb-3 px-2">
           <div className="mb-2 grid grid-cols-3 items-start gap-4">
             <div className="text-left">
               <div className="text-muted-foreground text-xs">{t('flightInfo.departure', 'Departure')}</div>
@@ -564,7 +583,7 @@ export function FlightCard(props: FlightCardProps) {
 
         {/* Pros and Cons - Full View */}
         {hasContent && (
-          <div className="mb-3">
+          <div className="mb-3 px-2">
             {/* Toggle Button */}
             <button
               onClick={(e) => {
@@ -610,7 +629,7 @@ export function FlightCard(props: FlightCardProps) {
           </div>
         )}
 
-        <div className="mt-4 flex items-center justify-between pb-3">
+        <div className="mt-4 flex items-center justify-between pb-3 px-2">
           <button
             onClick={() => setShowDetails(true)}
             className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 hover:underline"

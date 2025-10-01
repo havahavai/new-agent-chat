@@ -102,6 +102,7 @@ export interface FlightData {
   };
   pros?: string[];
   cons?: string[];
+  insights?: string[];
   tags?: string[];
 }
 
@@ -146,6 +147,7 @@ export interface TransformedFlightData {
   };
   pros?: string[];
   cons?: string[];
+  insights?: string[];
   tags?: string[];
 }
 
@@ -246,6 +248,7 @@ export function transformFlightDataForFiltering(
     component_breakdown: flight.component_breakdown,
     pros: flight.pros,
     cons: flight.cons,
+    insights: flight.insights,
     tags: flight.tags,
   };
 }
