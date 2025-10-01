@@ -506,13 +506,13 @@ export function FlightCard(props: FlightCardProps) {
           style={mirrorStyles.content}
         >
         {/* Insights Banner - Top-Left Corner Badge */}
-        {props.insights && props.insights.length > 0 && props.insights[0] && props.insights[0].trim() && (
+        {/* {props.insights && props.insights.length > 0 && props.insights[0] && props.insights[0].trim() && (
           <div className="mb-3">
             <span className="inline-block bg-blue-50 px-2 py-1 text-[12px] text-gray-800 rounded-br-md" style={{ fontFamily: "Uber Move, Arial, Helvetica, sans-serif" }}>
               {props.insights[0]}
             </span>
           </div>
-        )}
+        )} */}
 
         <div className="flex items-center justify-between gap-0.5 mb-4 pt-3 px-2">
           <div className="flex items-center gap-2">
