@@ -14,6 +14,7 @@ import { ThreadView } from "../agent-inbox";
 import { useQueryState, parseAsBoolean } from "nuqs";
 // import { GenericInterruptView } from "./generic-interrupt";
 import { useArtifact } from "../artifact";
+import { useMediaArtifactControl } from "../MediaArtifact";
 
 function CustomComponent({
   message,
@@ -97,6 +98,7 @@ export function AssistantMessage({
   isLoading: boolean;
   handleRegenerate: (parentCheckpoint: Checkpoint | null | undefined) => void;
 }) {
+  const { openMedia } = useMediaArtifactControl();
   const content = message?.content ?? [];
   const contentString = getContentString(content);
   const [hideToolCalls] = useQueryState(
@@ -167,7 +169,11 @@ export function AssistantMessage({
             {contentString.length > 0 && (
               <div className="flex items-start gap-2">
                 <div className="py-1">
-                  <MarkdownText>{contentString}</MarkdownText>
+                  <MarkdownText
+                    onOpenMedia={({ url, title }) => openMedia({ url, title })}
+                  >
+                    {contentString}
+                  </MarkdownText>
                 </div>
                 <div
                   className={cn(

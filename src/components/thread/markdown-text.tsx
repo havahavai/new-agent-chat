@@ -6,7 +6,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
-import { FC, memo, useState } from "react";
+import { FC, memo, useMemo, useState } from "react";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { SyntaxHighlighter } from "@/components/thread/syntax-highlighter";
 
@@ -60,7 +60,37 @@ const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
   );
 };
 
-const defaultComponents: any = {
+type OpenMediaHandler = (args: {
+  url: string;
+  title?: string;
+  mimeType?: string;
+}) => void;
+
+function isMediaUrl(url: string) {
+  try {
+    const u = new URL(
+      url,
+      typeof window !== "undefined" ? window.location.href : "http://localhost",
+    );
+    const pathname = u.pathname.toLowerCase();
+    if (
+      pathname.endsWith(".png") ||
+      pathname.endsWith(".jpg") ||
+      pathname.endsWith(".jpeg") ||
+      pathname.endsWith(".gif") ||
+      pathname.endsWith(".webp") ||
+      pathname.endsWith(".svg")
+    ) {
+      return { type: "image" as const };
+    }
+    if (pathname.endsWith(".pdf")) {
+      return { type: "pdf" as const };
+    }
+  } catch {}
+  return null;
+}
+
+const makeComponents = (onOpenMedia?: OpenMediaHandler): any => ({
   h1: ({ className, ...props }: { className?: string }) => (
     <h1
       className={cn(
@@ -118,15 +148,43 @@ const defaultComponents: any = {
       {...props}
     />
   ),
-  a: ({ className, ...props }: { className?: string }) => (
-    <a
-      className={cn(
-        "text-primary font-medium underline underline-offset-4",
-        className,
-      )}
-      {...props}
-    />
-  ),
+  a: ({
+    className,
+    href,
+    onClick,
+    title,
+    ...props
+  }: {
+    className?: string;
+    href?: string;
+    title?: string;
+    onClick?: React.MouseEventHandler<HTMLAnchorElement>;
+  }) => {
+    const handleClick: React.MouseEventHandler<HTMLAnchorElement> = (e) => {
+      if (onOpenMedia && href) {
+        const media = isMediaUrl(href);
+        if (media) {
+          e.preventDefault();
+          onOpenMedia({ url: href, title });
+          return;
+        }
+      }
+      onClick?.(e);
+    };
+    return (
+      <a
+        className={cn(
+          "text-primary font-medium underline underline-offset-4",
+          className,
+        )}
+        href={href}
+        onClick={handleClick}
+        target={href ? "_blank" : undefined}
+        rel={href ? "noopener noreferrer" : undefined}
+        {...props}
+      />
+    );
+  },
   blockquote: ({ className, ...props }: { className?: string }) => (
     <blockquote
       className={cn("border-l-2 pl-6 italic", className)}
@@ -202,16 +260,39 @@ const defaultComponents: any = {
       {...props}
     />
   ),
-  img: ({ className, alt, ...props }: { className?: string; alt?: string }) => (
-    <img
-      className={cn(
-        "m-2 inline-block h-12 max-h-12 w-12 max-w-12 rounded-full object-cover shadow-sm",
-        className,
-      )}
-      alt={alt || ""}
-      {...props}
-    />
-  ),
+  img: ({
+    className,
+    alt,
+    src,
+    onClick,
+    ...props
+  }: {
+    className?: string;
+    alt?: string;
+    src?: string;
+    onClick?: React.MouseEventHandler<HTMLImageElement>;
+  }) => {
+    const handleClick: React.MouseEventHandler<HTMLImageElement> = (e) => {
+      if (onOpenMedia && src) {
+        e.preventDefault();
+        onOpenMedia({ url: src, title: alt });
+        return;
+      }
+      onClick?.(e);
+    };
+    return (
+      <img
+        className={cn(
+          "m-2 inline-block h-12 max-h-12 w-12 max-w-12 cursor-zoom-in rounded-full object-cover shadow-sm",
+          className,
+        )}
+        alt={alt || ""}
+        src={src}
+        onClick={handleClick}
+        {...props}
+      />
+    );
+  },
   code: ({
     className,
     children,
@@ -251,15 +332,19 @@ const defaultComponents: any = {
       </code>
     );
   },
-};
+});
 
-const MarkdownTextImpl: FC<{ children: string }> = ({ children }) => {
+const MarkdownTextImpl: FC<{
+  children: string;
+  onOpenMedia?: OpenMediaHandler;
+}> = ({ children, onOpenMedia }) => {
+  const components = useMemo(() => makeComponents(onOpenMedia), [onOpenMedia]);
   return (
     <div className="markdown-content">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
-        components={defaultComponents}
+        components={components}
       >
         {children}
       </ReactMarkdown>

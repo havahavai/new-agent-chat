@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BranchSwitcher, CommandBar } from "./shared";
 import { MultimodalPreview } from "@/components/thread/MultimodalPreview";
 import { isBase64ContentBlock } from "@/lib/multimodal-utils";
+import type { Base64ContentBlock } from "@langchain/core/messages";
 import { getJwtToken, GetUserId } from "@/services/authService";
 import { getCachedLocation } from "@/lib/location-cache";
 import { getSelectedCurrency } from "@/utils/currency-storage";
@@ -14,6 +15,8 @@ import { getSelectedCountry } from "@/utils/country-storage";
 import { detectAndSetUserCurrency } from "@/services/currencyDetectionService";
 import { v4 as uuidv4 } from "uuid";
 import { getCurrentLanguage } from "@/utils/i18n";
+import { useMediaArtifactControl } from "../MediaArtifact";
+import { MarkdownText } from "../markdown-text";
 
 function EditableContent({
   value,
@@ -49,6 +52,7 @@ export function HumanMessage({
   isLoading: boolean;
 }) {
   const thread = useStreamContext();
+  const { openMedia } = useMediaArtifactControl();
   const meta = undefined as any;
   const parentCheckpoint = meta?.firstSeenState?.parent_checkpoint;
 
@@ -78,7 +82,10 @@ export function HumanMessage({
     try {
       await detectAndSetUserCurrency();
     } catch (error) {
-      console.warn("Currency detection failed, using stored/default values:", error);
+      console.warn(
+        "Currency detection failed, using stored/default values:",
+        error,
+      );
     }
 
     // Get location data from cache
@@ -146,24 +153,51 @@ export function HumanMessage({
           />
         ) : (
           <div className="flex flex-col gap-2">
-            {/* Render images and files if no text */}
+            {/* Render images and files, clickable to open in artifact */}
             {Array.isArray(message.content) && message.content.length > 0 && (
               <div className="flex flex-wrap items-end justify-end gap-2">
-                {message.content.reduce<React.ReactNode[]>(
-                  (acc, block, idx) => {
-                    if (isBase64ContentBlock(block)) {
-                      acc.push(
+                {(message.content as unknown[])
+                  .filter(isBase64ContentBlock)
+                  .map((block, idx) => {
+                    const b = block as Base64ContentBlock;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          try {
+                            if (
+                              typeof b.mime_type === "string" &&
+                              b.mime_type.startsWith("image/")
+                            ) {
+                              const url = `data:${b.mime_type};base64,${b.data}`;
+                              openMedia({
+                                url,
+                                title: String(b.metadata?.name || "Image"),
+                              });
+                            } else if (b.mime_type === "application/pdf") {
+                              const url = `data:${b.mime_type};base64,${b.data}`;
+                              openMedia({
+                                url,
+                                title: String(
+                                  (b.metadata as any)?.filename ||
+                                    b.metadata?.name ||
+                                    "Document",
+                                ),
+                                mimeType: "application/pdf",
+                              });
+                            }
+                          } catch {}
+                        }}
+                        className="focus-visible:outline-none"
+                      >
                         <MultimodalPreview
-                          key={idx}
-                          block={block}
+                          block={b}
                           size="md"
-                        />,
-                      );
-                    }
-                    return acc;
-                  },
-                  [],
-                )}
+                        />
+                      </button>
+                    );
+                  })}
               </div>
             )}
             {/* Render text and show actions inline on the same row (actions on the left) */}
@@ -195,9 +229,13 @@ export function HumanMessage({
                   isHumanMessage={true}
                 />
               </div>
-              <p className="bg-muted flex-1 rounded-lg px-2 py-1 text-left break-words whitespace-pre-wrap">
-                {contentString}
-              </p>
+              <div className="bg-muted flex-1 rounded-lg px-2 py-1 text-left break-words whitespace-pre-wrap">
+                <MarkdownText
+                  onOpenMedia={({ url, title }) => openMedia({ url, title })}
+                >
+                  {contentString}
+                </MarkdownText>
+              </div>
             </div>
           </div>
         )}

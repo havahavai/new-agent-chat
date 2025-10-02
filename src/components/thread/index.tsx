@@ -28,7 +28,7 @@ import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import ThreadHistory from "./history";
 import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { Label } from "../ui/label";
+// Removed custom Label due to type issues; using native label element instead
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { ContentBlocksPreview } from "./ContentBlocksPreview";
 import {
@@ -47,6 +47,8 @@ import { GenericInterruptView } from "./messages/generic-interrupt";
 import { NonAgentFlowReopenButton } from "./NonAgentFlowReopenButton";
 import { NetworkStatusBanner } from "@/components/common/ui/NetworkStatusBanner";
 import { getCurrentLanguage } from "@/utils/i18n";
+import { MediaArtifact } from "./MediaArtifact";
+import { useMediaArtifactControl } from "./MediaArtifact";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -218,7 +220,10 @@ export function Thread() {
     try {
       await detectAndSetUserCurrency();
     } catch (error) {
-      console.warn("Currency detection failed, using stored/default values:", error);
+      console.warn(
+        "Currency detection failed, using stored/default values:",
+        error,
+      );
     }
 
     const newHumanMessage: Message = {
@@ -349,6 +354,35 @@ export function Thread() {
     (b: any) => b.data?.type === "ai" || b.data?.type === "tool",
   );
 
+  const { currentMedia } = useMediaArtifactControl();
+
+  const handleDownload = () => {
+    try {
+      const url = currentMedia?.url;
+      if (!url) return;
+      const a = document.createElement("a");
+      a.href = url;
+      const defaultName = (currentMedia?.title || "document").toString();
+      a.download = defaultName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch {}
+  };
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share && currentMedia?.url) {
+        await navigator.share({
+          title: currentMedia?.title || "Document",
+          url: currentMedia.url,
+        });
+      } else if (currentMedia?.url) {
+        await navigator.clipboard.writeText(currentMedia.url);
+      }
+    } catch {}
+  };
+
   return (
     <InterruptManager>
       <div className="flex h-screen w-full overflow-hidden">
@@ -374,7 +408,7 @@ export function Thread() {
         <div
           className={cn(
             "grid w-full grid-cols-[1fr_0fr] transition-all duration-500",
-            artifactOpen && "grid-cols-[3fr_2fr]",
+            artifactOpen && isLargeScreen && "grid-cols-[3fr_2fr]",
           )}
         >
           <motion.div
@@ -553,7 +587,7 @@ export function Thread() {
                         />
 
                         <div className="flex items-center gap-6 p-2 pt-4">
-                          <Label
+                          <label
                             htmlFor="file-input"
                             className="flex cursor-pointer items-center gap-2"
                           >
@@ -561,7 +595,7 @@ export function Thread() {
                             <span className="text-sm text-gray-600">
                               Upload PDF, Image, or Video
                             </span>
-                          </Label>
+                          </label>
                           <input
                             id="file-input"
                             type="file"
@@ -599,10 +633,176 @@ export function Thread() {
               />
             </StickToBottom>
           </motion.div>
-          <div className="relative flex flex-col border-l">
-            <div className="absolute inset-0 flex min-w-[30vw] flex-col">
-              <div className="grid grid-cols-[1fr_auto] border-b p-4">
+          {isLargeScreen && (
+            <div className="relative flex flex-col border-l">
+              <div className="absolute inset-0 flex min-w-[30vw] flex-col">
+                <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 border-b p-4 sm:gap-4">
+                  <ArtifactTitle className="truncate overflow-hidden" />
+                  <button
+                    onClick={handleDownload}
+                    className="cursor-pointer"
+                    aria-label="Download"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line
+                        x1="12"
+                        x2="12"
+                        y1="15"
+                        y2="3"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="cursor-pointer"
+                    aria-label="Share"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle
+                        cx="18"
+                        cy="5"
+                        r="3"
+                      />
+                      <circle
+                        cx="6"
+                        cy="12"
+                        r="3"
+                      />
+                      <circle
+                        cx="18"
+                        cy="19"
+                        r="3"
+                      />
+                      <line
+                        x1="8.59"
+                        y1="13.51"
+                        x2="15.42"
+                        y2="17.49"
+                      />
+                      <line
+                        x1="15.41"
+                        y1="6.51"
+                        x2="8.59"
+                        y2="10.49"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={closeArtifact}
+                    className="cursor-pointer"
+                  >
+                    <XIcon className="size-5" />
+                  </button>
+                </div>
+                <ArtifactContent className="relative flex-grow" />
+              </div>
+            </div>
+          )}
+        </div>
+        <NonAgentFlowReopenButton />
+        {/* Mobile Bottom Sheet for Artifact */}
+        {!isLargeScreen && artifactOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-40 bg-black/50"
+              onClick={closeArtifact}
+            />
+            <div className="fixed inset-x-0 bottom-0 z-50 h-[80vh] rounded-t-2xl border-t bg-white shadow-2xl">
+              <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 border-b p-4 sm:gap-4">
                 <ArtifactTitle className="truncate overflow-hidden" />
+                <button
+                  onClick={handleDownload}
+                  className="cursor-pointer"
+                  aria-label="Download"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line
+                      x1="12"
+                      x2="12"
+                      y1="15"
+                      y2="3"
+                    />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleShare}
+                  className="cursor-pointer"
+                  aria-label="Share"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle
+                      cx="18"
+                      cy="5"
+                      r="3"
+                    />
+                    <circle
+                      cx="6"
+                      cy="12"
+                      r="3"
+                    />
+                    <circle
+                      cx="18"
+                      cy="19"
+                      r="3"
+                    />
+                    <line
+                      x1="8.59"
+                      y1="13.51"
+                      x2="15.42"
+                      y2="17.49"
+                    />
+                    <line
+                      x1="15.41"
+                      y1="6.51"
+                      x2="8.59"
+                      y2="10.49"
+                    />
+                  </svg>
+                </button>
                 <button
                   onClick={closeArtifact}
                   className="cursor-pointer"
@@ -610,11 +810,14 @@ export function Thread() {
                   <XIcon className="size-5" />
                 </button>
               </div>
-              <ArtifactContent className="relative flex-grow" />
+              <div className="h-[calc(80vh-56px)]">
+                <ArtifactContent className="relative h-full w-full" />
+              </div>
             </div>
-          </div>
-        </div>
-        <NonAgentFlowReopenButton />
+          </>
+        )}
+        {/* Mount the media artifact portal */}
+        <MediaArtifact />
       </div>
     </InterruptManager>
   );

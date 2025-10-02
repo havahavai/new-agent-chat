@@ -3,6 +3,7 @@
 import { StreamProvider } from "@/providers/Stream";
 import { ThreadProvider } from "@/providers/Thread";
 import { ArtifactProvider } from "@/components/thread/artifact";
+import { MediaArtifact } from "@/components/thread/MediaArtifact";
 import { NonAgentFlowProvider } from "@/providers/NonAgentFlowContext";
 import { TabProvider } from "@/providers/TabContext";
 import { ItineraryWidgetProvider } from "@/providers/ItineraryWidgetContext";
@@ -38,17 +39,19 @@ export default function DemoPage(): React.ReactNode {
             <ThreadProvider>
               <StreamProvider>
                 <ArtifactProvider>
-                  <NonAgentFlowProvider>
-                    <TabProvider>
-                      <ItineraryWidgetProvider>
-                        <div className="flex h-[100dvh] min-h-0 flex-col">
-                          <div className="min-h-0 flex-1 overflow-hidden">
-                            <TabsLayout />
+                  <MediaArtifact>
+                    <NonAgentFlowProvider>
+                      <TabProvider>
+                        <ItineraryWidgetProvider>
+                          <div className="flex h-[100dvh] min-h-0 flex-col">
+                            <div className="min-h-0 flex-1 overflow-hidden">
+                              <TabsLayout />
+                            </div>
                           </div>
-                        </div>
-                      </ItineraryWidgetProvider>
-                    </TabProvider>
-                  </NonAgentFlowProvider>
+                        </ItineraryWidgetProvider>
+                      </TabProvider>
+                    </NonAgentFlowProvider>
+                  </MediaArtifact>
                 </ArtifactProvider>
               </StreamProvider>
             </ThreadProvider>
