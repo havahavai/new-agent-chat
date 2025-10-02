@@ -1,5 +1,12 @@
 import { v4 as uuidv4 } from "uuid";
-import { FormEvent, useEffect, useRef, useState, ReactNode, useMemo } from "react";
+import {
+  FormEvent,
+  useEffect,
+  useRef,
+  useState,
+  ReactNode,
+  useMemo,
+} from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useStreamContext } from "@/providers/Stream";
@@ -28,6 +35,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { parseAsBoolean, useQueryState } from "nuqs";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useFileUpload } from "@/hooks/use-file-upload";
@@ -154,6 +162,47 @@ export function Thread() {
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
   const [firstName, setFirstName] = useState<string>("");
   const [refreshKey, setRefreshKey] = useState(0); // Force re-render of quick actions
+  const searchParams = ((): URLSearchParams | null => {
+    try {
+      return new URLSearchParams(
+        typeof window !== "undefined" ? window.location.search : "",
+      );
+    } catch {
+      return null;
+    }
+  })();
+
+  // Prefill input from base64 `query` param (preferred) or `inputMsg` fallback or localStorage
+  useEffect(() => {
+    try {
+      let initial: string | null = null;
+      const b64 = searchParams?.get("query");
+      if (b64) {
+        try {
+          initial = decodeURIComponent(escape(atob(b64)));
+        } catch {
+          try {
+            initial = atob(b64);
+          } catch {}
+        }
+      }
+      if (!initial) {
+        initial = searchParams?.get("inputMsg") || null;
+      }
+      const fromStorage = localStorage.getItem("flyo:prefill:query");
+      if (!initial && fromStorage) {
+        initial = fromStorage;
+      }
+      if (initial) {
+        setInput(initial);
+      }
+      if (fromStorage) {
+        localStorage.removeItem("flyo:prefill:query");
+      }
+    } catch {}
+    // we only want to run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     try {
@@ -195,7 +244,11 @@ export function Thread() {
       blocksCount: blocks.length || 0,
     });
 
-    if (lastThreadId.current !== threadId && threadId) {
+    if (
+      lastThreadId.current !== null &&
+      lastThreadId.current !== threadId &&
+      threadId
+    ) {
       if (stream.resetForThreadSwitch) {
         stream.resetForThreadSwitch(threadId);
       }
@@ -203,11 +256,17 @@ export function Thread() {
     lastThreadId.current = threadId;
   }, [threadId, stream, blocks.length]);
 
-  // Clear input and contentBlocks when threadId changes
+  // Clear input and contentBlocks only when threadId actually changes after initial mount
   useEffect(() => {
-    setInput("");
-    setContentBlocks([]);
-    setFirstTokenReceived(false);
+    // Do not clear on the very first render
+    if (lastThreadId.current === null) {
+      return;
+    }
+    if (lastThreadId.current !== threadId) {
+      setInput("");
+      setContentBlocks([]);
+      setFirstTokenReceived(false);
+    }
   }, [threadId, setContentBlocks]);
 
   const lastError = useRef<string | undefined>(undefined);
@@ -267,9 +326,12 @@ export function Thread() {
     try {
       await detectAndSetUserCurrency();
       // Trigger refresh of quick actions to show updated values
-      setRefreshKey(prev => prev + 1);
+      setRefreshKey((prev) => prev + 1);
     } catch (error) {
-      console.warn("Currency detection failed, using stored/default values:", error);
+      console.warn(
+        "Currency detection failed, using stored/default values:",
+        error,
+      );
     }
 
     const newHumanMessage: Message = {
@@ -350,57 +412,55 @@ export function Thread() {
   };
 
   // Quick Actions: one-click prompts to guide users
-  const quickActions: Array<{ label: string; text: string; icon?: ReactNode }> = useMemo(() => [
-         {
-      label: t(
-          "quickActionTab.whatDoWeDo.label",
-          "What can\nFlyo do?",
-        ),
-      text: t(
-          "quickActionTab.whatDoWeDo.text",
-          "What can Flyo do?",
-        ),
-      icon: <HelpCircle className="h-4 w-4" />,
-     },
-      {
-        label: t("quickActionTab.bookMeAFlight.label", "Book me a\nflight"),
-        text: t("quickActionTab.bookMeAFlight.text", "Book me a flight"),
-        icon: <Plane className="h-4 w-4" />,
-      },
-      {
-        label: t(
-          "quickActionTab.showFreeLoungeAccess.label",
-          "Show me free\nlounge access",
-        ),
-        text: t(
-          "quickActionTab.showFreeLoungeAccess.text",
-          "Show me free lounge access",
-        ),
-        icon: <Armchair className="h-4 w-4" />,
-      },
-      {
-        label: t(
-          "quickActionTab.showMePastFlights.label",
-          "Show me my\npast flights",
-        ),
-        text: t(
-          "quickActionTab.showMePastFlights.text",
-          "Show me my past flights",
-        ),
-        icon: <Ticket className="h-4 w-4" />,
-      },
-      {
-        label: t(
-          "quickActionTab.doMyWebCheckin.label",
-          "Please do my\nwebcheckin",
-        ),
-        text: t(
-          "quickActionTab.doMyWebCheckin.text",
-          "Please do my webcheckin",
-        ),
-        icon: <Ticket className="h-4 w-4" />,
-      }
-    ], [refreshKey]); // Re-compute when refreshKey changes
+  const quickActions: Array<{ label: string; text: string; icon?: ReactNode }> =
+    useMemo(
+      () => [
+        {
+          label: t("quickActionTab.whatDoWeDo.label", "What can\nFlyo do?"),
+          text: t("quickActionTab.whatDoWeDo.text", "What can Flyo do?"),
+          icon: <HelpCircle className="h-4 w-4" />,
+        },
+        {
+          label: t("quickActionTab.bookMeAFlight.label", "Book me a\nflight"),
+          text: t("quickActionTab.bookMeAFlight.text", "Book me a flight"),
+          icon: <Plane className="h-4 w-4" />,
+        },
+        {
+          label: t(
+            "quickActionTab.showFreeLoungeAccess.label",
+            "Show me free\nlounge access",
+          ),
+          text: t(
+            "quickActionTab.showFreeLoungeAccess.text",
+            "Show me free lounge access",
+          ),
+          icon: <Armchair className="h-4 w-4" />,
+        },
+        {
+          label: t(
+            "quickActionTab.showMePastFlights.label",
+            "Show me my\npast flights",
+          ),
+          text: t(
+            "quickActionTab.showMePastFlights.text",
+            "Show me my past flights",
+          ),
+          icon: <Ticket className="h-4 w-4" />,
+        },
+        {
+          label: t(
+            "quickActionTab.doMyWebCheckin.label",
+            "Please do my\nwebcheckin",
+          ),
+          text: t(
+            "quickActionTab.doMyWebCheckin.text",
+            "Please do my webcheckin",
+          ),
+          icon: <Ticket className="h-4 w-4" />,
+        },
+      ],
+      [refreshKey],
+    ); // Re-compute when refreshKey changes
 
   const handleQuickActionClick = async (text: string) => {
     if (isLoading) return;
@@ -414,9 +474,12 @@ export function Thread() {
     try {
       await detectAndSetUserCurrency();
       // Trigger refresh of quick actions to show updated values
-      setRefreshKey(prev => prev + 1);
+      setRefreshKey((prev) => prev + 1);
     } catch (error) {
-      console.warn("Currency detection failed, using stored/default values:", error);
+      console.warn(
+        "Currency detection failed, using stored/default values:",
+        error,
+      );
     }
 
     const newHumanMessage: Message = {

@@ -54,8 +54,20 @@ const Login: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated()) {
       // User is already logged in, redirect to main app
-      trackChatScreenReached('existing_user');
-      window.location.href = "/";
+      trackChatScreenReached("existing_user");
+      try {
+        // Preserve only whitelisted params on redirect to home
+        const current = new URL(window.location.href);
+        const allowed = new URLSearchParams();
+        const q = current.searchParams.get("query");
+        const threadId = current.searchParams.get("threadId");
+        if (q) allowed.set("query", q);
+        if (threadId) allowed.set("threadId", threadId);
+        const search = allowed.toString();
+        window.location.href = `/${search ? `?${search}` : ""}`;
+      } catch {
+        window.location.href = "/";
+      }
     } else {
       // Track login page view for new visitors
       trackLoginPageViewed();
@@ -95,7 +107,8 @@ const Login: React.FC = () => {
       window.location.href = authUrl;
     } catch (err) {
       console.error("Error during Google login:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to initiate Google login";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to initiate Google login";
 
       // Track login error
       trackLoginError(errorMessage);
@@ -109,6 +122,24 @@ const Login: React.FC = () => {
   useEffect(() => {
     const handleOAuthCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
+      // Persist passthrough message: prefer base64 `query`
+      const b64 = urlParams.get("query");
+      if (b64) {
+        try {
+          const decoded = (() => {
+            try {
+              return decodeURIComponent(escape(atob(b64)));
+            } catch {}
+            try {
+              return atob(b64);
+            } catch {}
+            return null;
+          })();
+          if (decoded) {
+            localStorage.setItem("flyo:prefill:query", decoded);
+          }
+        } catch {}
+      }
       const code = urlParams.get("code");
 
       if (code) {
@@ -186,12 +217,21 @@ const Login: React.FC = () => {
             );
             console.log("✅ JWT token stored successfully!");
 
-            // Clear URL parameters
-            window.history.replaceState(
-              {},
-              document.title,
-              window.location.pathname,
-            );
+            // Replace URL with only whitelisted params (`query`, `threadId`)
+            try {
+              const current = new URL(window.location.href);
+              const allowed = new URLSearchParams();
+              const q = current.searchParams.get("query");
+              const threadId = current.searchParams.get("threadId");
+              if (q) allowed.set("query", q);
+              if (threadId) allowed.set("threadId", threadId);
+              current.search = allowed.toString();
+              window.history.replaceState(
+                {},
+                document.title,
+                current.toString(),
+              );
+            } catch {}
 
             // Detect currency and country after successful login
             console.log("Login successful! Detecting currency and country...");
@@ -209,7 +249,10 @@ const Login: React.FC = () => {
                 );
               }
             } catch (error) {
-              console.error("Error detecting currency/country after login:", error);
+              console.error(
+                "Error detecting currency/country after login:",
+                error,
+              );
             }
 
             // Request location permission after successful login
@@ -244,8 +287,19 @@ const Login: React.FC = () => {
               window.location.href = "/profile-confirmation";
             } else {
               console.log("Existing user. Redirecting to home page...");
-              trackChatScreenReached('existing_user');
-              window.location.href = "/";
+              trackChatScreenReached("existing_user");
+              try {
+                const current = new URL(window.location.href);
+                const allowed = new URLSearchParams();
+                const q = current.searchParams.get("query");
+                const threadId = current.searchParams.get("threadId");
+                if (q) allowed.set("query", q);
+                if (threadId) allowed.set("threadId", threadId);
+                const search = allowed.toString();
+                window.location.href = `/${search ? `?${search}` : ""}`;
+              } catch {
+                window.location.href = "/";
+              }
             }
           } catch (validationError) {
             // Handle user type validation error
@@ -253,7 +307,8 @@ const Login: React.FC = () => {
           }
         } catch (err) {
           console.error("Error during login process:", err);
-          const errorMessage = err instanceof Error ? err.message : "Login failed";
+          const errorMessage =
+            err instanceof Error ? err.message : "Login failed";
 
           // Track login error
           trackLoginError(errorMessage);

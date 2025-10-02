@@ -36,9 +36,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   // Show loading state while checking authentication
   if (isAuth === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
@@ -48,12 +48,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   // If not authenticated, redirect to login page
   if (!isAuth) {
     if (typeof window !== "undefined") {
-      window.location.href = "/login";
+      try {
+        const search = window.location.search || "";
+        // Forward existing query params (e.g., inputMsg) to the login page
+        window.location.href = `/login${search}`;
+      } catch {
+        window.location.href = "/login";
+      }
     }
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
           <p className="text-gray-600">Redirecting to login...</p>
         </div>
       </div>
