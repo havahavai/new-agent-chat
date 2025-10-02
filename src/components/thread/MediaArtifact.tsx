@@ -103,15 +103,6 @@ function MediaContent({
   mimeType?: string;
   title?: string;
 }) {
-  if (!url) return null;
-
-  const mt = (mimeType || getMimeTypeFromUrl(url) || "").toLowerCase();
-  const isImage = mt.startsWith("image/") || url.startsWith("data:image/");
-  const isPdf =
-    mt === "application/pdf" ||
-    url.toLowerCase().endsWith(".pdf") ||
-    url.startsWith("data:application/pdf");
-
   const ImageViewer = useMemo(
     () =>
       dynamic(() => import("./ImageViewer"), {
@@ -137,6 +128,15 @@ function MediaContent({
       }),
     [],
   );
+
+  if (!url) return null;
+
+  const mt = (mimeType || getMimeTypeFromUrl(url) || "").toLowerCase();
+  const isImage = mt.startsWith("image/") || url.startsWith("data:image/");
+  const isPdf =
+    mt === "application/pdf" ||
+    url.toLowerCase().endsWith(".pdf") ||
+    url.startsWith("data:application/pdf");
 
   if (isImage) {
     return (
