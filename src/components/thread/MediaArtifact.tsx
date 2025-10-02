@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { useArtifact } from "./artifact";
 import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
 
 type MediaPayload = {
   url: string;
@@ -111,24 +112,46 @@ function MediaContent({
     url.toLowerCase().endsWith(".pdf") ||
     url.startsWith("data:application/pdf");
 
+  const ImageViewer = useMemo(
+    () =>
+      dynamic(() => import("./ImageViewer"), {
+        ssr: false,
+        loading: () => (
+          <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">
+            Loading image…
+          </div>
+        ),
+      }),
+    [],
+  );
+
+  const PdfViewer = useMemo(
+    () =>
+      dynamic(() => import("./PdfViewer"), {
+        ssr: false,
+        loading: () => (
+          <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">
+            Loading PDF…
+          </div>
+        ),
+      }),
+    [],
+  );
+
   if (isImage) {
     return (
-      <div className="flex h-full w-full items-center justify-center">
-        <img
-          src={url}
-          alt={title || "image"}
-          className="max-h-full max-w-full object-contain"
-        />
-      </div>
+      <ImageViewer
+        url={url}
+        title={title}
+      />
     );
   }
 
   if (isPdf) {
     return (
-      <iframe
-        title={title || "document"}
-        src={`${url}#toolbar=0&view=FitH`}
-        className="h-full w-full"
+      <PdfViewer
+        url={url}
+        title={title}
       />
     );
   }
