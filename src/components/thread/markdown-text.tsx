@@ -12,6 +12,7 @@ import { SyntaxHighlighter } from "@/components/thread/syntax-highlighter";
 
 import { TooltipIconButton } from "@/components/thread/tooltip-icon-button";
 import { cn } from "@/lib/utils";
+import { LinkArtifact } from "./LinkArtifact";
 
 import "katex/dist/katex.min.css";
 
@@ -118,15 +119,39 @@ const defaultComponents: any = {
       {...props}
     />
   ),
-  a: ({ className, ...props }: { className?: string }) => (
-    <a
-      className={cn(
-        "text-primary font-medium underline underline-offset-4",
-        className,
-      )}
-      {...props}
-    />
-  ),
+  a: ({
+    className,
+    href,
+    children,
+    ...props
+  }: {
+    className?: string;
+    href?: string;
+    children?: React.ReactNode;
+  }) => {
+    if (!href) {
+      return (
+        <a
+          className={cn(
+            "text-primary font-medium underline underline-offset-4",
+            className,
+          )}
+          {...props}
+        >
+          {children}
+        </a>
+      );
+    }
+
+    return (
+      <LinkArtifact
+        url={href}
+        title={typeof children === "string" ? children : href}
+      >
+        {children}
+      </LinkArtifact>
+    );
+  },
   blockquote: ({ className, ...props }: { className?: string }) => (
     <blockquote
       className={cn("border-l-2 pl-6 italic", className)}

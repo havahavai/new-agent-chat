@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 type Setter<T> = (value: T | ((value: T) => T)) => void;
 
@@ -22,6 +23,7 @@ const ArtifactSlotContext = createContext<{
   content: [HTMLElement | null, Setter<HTMLElement | null>];
 
   context: [Record<string, unknown>, Setter<Record<string, unknown>>];
+  isMobile: boolean;
 }>(null!);
 
 /**
@@ -103,9 +105,12 @@ export function ArtifactProvider(props: { children?: ReactNode }) {
   const mounted = useState<string | null>(null);
   const context = useState<Record<string, unknown>>({});
 
+  // Detect mobile devices
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
   return (
     <ArtifactSlotContext.Provider
-      value={{ open, mounted, title, content, context }}
+      value={{ open, mounted, title, content, context, isMobile }}
     >
       {props.children}
     </ArtifactSlotContext.Provider>
@@ -186,4 +191,12 @@ export function useArtifactOpen() {
 export function useArtifactContext() {
   const context = useContext(ArtifactSlotContext);
   return context.context;
+}
+
+/**
+ * Hook to detect if the current device is mobile
+ */
+export function useArtifactMobile() {
+  const context = useContext(ArtifactSlotContext);
+  return context.isMobile;
 }

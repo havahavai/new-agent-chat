@@ -1,5 +1,12 @@
 import { v4 as uuidv4 } from "uuid";
-import { FormEvent, useEffect, useRef, useState, ReactNode, useMemo } from "react";
+import {
+  FormEvent,
+  useEffect,
+  useRef,
+  useState,
+  ReactNode,
+  useMemo,
+} from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useStreamContext } from "@/providers/Stream";
@@ -37,6 +44,7 @@ import {
   ArtifactTitle,
   useArtifactContext,
   useArtifactOpen,
+  useArtifactMobile,
 } from "./artifact";
 import {
   getJwtToken,
@@ -121,6 +129,7 @@ function isDisplayableMessage(m: Message) {
 export function Thread() {
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
+  const isMobile = useArtifactMobile();
   const { locationData } = useLocationContext();
 
   // Initialize translations for homePage
@@ -267,9 +276,12 @@ export function Thread() {
     try {
       await detectAndSetUserCurrency();
       // Trigger refresh of quick actions to show updated values
-      setRefreshKey(prev => prev + 1);
+      setRefreshKey((prev) => prev + 1);
     } catch (error) {
-      console.warn("Currency detection failed, using stored/default values:", error);
+      console.warn(
+        "Currency detection failed, using stored/default values:",
+        error,
+      );
     }
 
     const newHumanMessage: Message = {
@@ -350,57 +362,55 @@ export function Thread() {
   };
 
   // Quick Actions: one-click prompts to guide users
-  const quickActions: Array<{ label: string; text: string; icon?: ReactNode }> = useMemo(() => [
-         {
-      label: t(
-          "quickActionTab.whatDoWeDo.label",
-          "What can\nFlyo do?",
-        ),
-      text: t(
-          "quickActionTab.whatDoWeDo.text",
-          "What can Flyo do?",
-        ),
-      icon: <HelpCircle className="h-4 w-4" />,
-     },
-      {
-        label: t("quickActionTab.bookMeAFlight.label", "Book me a\nflight"),
-        text: t("quickActionTab.bookMeAFlight.text", "Book me a flight"),
-        icon: <Plane className="h-4 w-4" />,
-      },
-      {
-        label: t(
-          "quickActionTab.showFreeLoungeAccess.label",
-          "Show me free\nlounge access",
-        ),
-        text: t(
-          "quickActionTab.showFreeLoungeAccess.text",
-          "Show me free lounge access",
-        ),
-        icon: <Armchair className="h-4 w-4" />,
-      },
-      {
-        label: t(
-          "quickActionTab.showMePastFlights.label",
-          "Show me my\npast flights",
-        ),
-        text: t(
-          "quickActionTab.showMePastFlights.text",
-          "Show me my past flights",
-        ),
-        icon: <Ticket className="h-4 w-4" />,
-      },
-      {
-        label: t(
-          "quickActionTab.doMyWebCheckin.label",
-          "Please do my\nwebcheckin",
-        ),
-        text: t(
-          "quickActionTab.doMyWebCheckin.text",
-          "Please do my webcheckin",
-        ),
-        icon: <Ticket className="h-4 w-4" />,
-      }
-    ], [refreshKey]); // Re-compute when refreshKey changes
+  const quickActions: Array<{ label: string; text: string; icon?: ReactNode }> =
+    useMemo(
+      () => [
+        {
+          label: t("quickActionTab.whatDoWeDo.label", "What can\nFlyo do?"),
+          text: t("quickActionTab.whatDoWeDo.text", "What can Flyo do?"),
+          icon: <HelpCircle className="h-4 w-4" />,
+        },
+        {
+          label: t("quickActionTab.bookMeAFlight.label", "Book me a\nflight"),
+          text: t("quickActionTab.bookMeAFlight.text", "Book me a flight"),
+          icon: <Plane className="h-4 w-4" />,
+        },
+        {
+          label: t(
+            "quickActionTab.showFreeLoungeAccess.label",
+            "Show me free\nlounge access",
+          ),
+          text: t(
+            "quickActionTab.showFreeLoungeAccess.text",
+            "Show me free lounge access",
+          ),
+          icon: <Armchair className="h-4 w-4" />,
+        },
+        {
+          label: t(
+            "quickActionTab.showMePastFlights.label",
+            "Show me my\npast flights",
+          ),
+          text: t(
+            "quickActionTab.showMePastFlights.text",
+            "Show me my past flights",
+          ),
+          icon: <Ticket className="h-4 w-4" />,
+        },
+        {
+          label: t(
+            "quickActionTab.doMyWebCheckin.label",
+            "Please do my\nwebcheckin",
+          ),
+          text: t(
+            "quickActionTab.doMyWebCheckin.text",
+            "Please do my webcheckin",
+          ),
+          icon: <Ticket className="h-4 w-4" />,
+        },
+      ],
+      [refreshKey],
+    ); // Re-compute when refreshKey changes
 
   const handleQuickActionClick = async (text: string) => {
     if (isLoading) return;
@@ -414,9 +424,12 @@ export function Thread() {
     try {
       await detectAndSetUserCurrency();
       // Trigger refresh of quick actions to show updated values
-      setRefreshKey(prev => prev + 1);
+      setRefreshKey((prev) => prev + 1);
     } catch (error) {
-      console.warn("Currency detection failed, using stored/default values:", error);
+      console.warn(
+        "Currency detection failed, using stored/default values:",
+        error,
+      );
     }
 
     const newHumanMessage: Message = {
@@ -514,7 +527,7 @@ export function Thread() {
         <div
           className={cn(
             "grid w-full grid-cols-[1fr_0fr] transition-all duration-500",
-            artifactOpen && "grid-cols-[3fr_2fr]",
+            artifactOpen && !isMobile && "grid-cols-[3fr_2fr]",
           )}
         >
           <motion.div
@@ -852,7 +865,8 @@ export function Thread() {
               )}
             </div>
           </motion.div>
-          <div className="relative flex flex-col border-l">
+          {/* Desktop: Side panel */}
+          <div className="relative hidden flex-col border-l md:flex">
             <div className="absolute inset-0 flex min-w-[30vw] flex-col">
               <div className="grid grid-cols-[1fr_auto] border-b p-4">
                 <ArtifactTitle className="truncate overflow-hidden" />
@@ -866,6 +880,39 @@ export function Thread() {
               <ArtifactContent className="relative flex-grow" />
             </div>
           </div>
+
+          {/* Mobile: Bottom sheet */}
+          {isMobile && artifactOpen && (
+            <div className="fixed inset-0 z-50 md:hidden">
+              {/* Backdrop */}
+              <div
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                onClick={closeArtifact}
+              />
+
+              {/* Bottom sheet */}
+              <div className="absolute right-0 bottom-0 left-0 flex h-[80vh] flex-col rounded-t-2xl bg-white shadow-2xl">
+                {/* Handle bar */}
+                <div className="flex justify-center pt-3 pb-2">
+                  <div className="h-1 w-12 rounded-full bg-gray-300" />
+                </div>
+
+                {/* Header */}
+                <div className="grid grid-cols-[1fr_auto] border-b p-4">
+                  <ArtifactTitle className="truncate overflow-hidden" />
+                  <button
+                    onClick={closeArtifact}
+                    className="cursor-pointer"
+                  >
+                    <XIcon className="size-5" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <ArtifactContent className="relative flex-1 overflow-hidden" />
+              </div>
+            </div>
+          )}
         </div>
         <NonAgentFlowReopenButton />
       </div>
