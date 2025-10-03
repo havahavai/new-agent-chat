@@ -8,6 +8,7 @@ import { TabProvider } from "@/providers/TabContext";
 import { ItineraryWidgetProvider } from "@/providers/ItineraryWidgetContext";
 import { LocationProvider } from "@/providers/LocationContext";
 import { CurrencyDetectionProvider } from "@/providers/CurrencyDetectionContext";
+import { PersonalizationProvider } from "@/providers/PersonalizationContext";
 import { Toaster } from "@/components/ui/sonner";
 import { ProtectedRoute } from "@/components/auth";
 import React from "react";
@@ -22,7 +23,7 @@ export default function DemoPage(): React.ReactNode {
 
   // Belt-and-suspenders for WebViews: if flag is propagated via query, persist again here
   useEffect(() => {
-    const flag = params.get("hideOwnerActions");
+    const flag = params?.get("hideOwnerActions");
     if (flag != null) {
       const normalized = flag.toLowerCase();
       setHideOwnerActions(normalized === "true" || normalized === "1");
@@ -35,23 +36,25 @@ export default function DemoPage(): React.ReactNode {
       <ProtectedRoute>
         <LocationProvider>
           <CurrencyDetectionProvider>
-            <ThreadProvider>
-              <StreamProvider>
-                <ArtifactProvider>
-                  <NonAgentFlowProvider>
-                    <TabProvider>
-                      <ItineraryWidgetProvider>
-                        <div className="flex h-[100dvh] min-h-0 flex-col">
-                          <div className="min-h-0 flex-1 overflow-hidden">
-                            <TabsLayout />
+            <PersonalizationProvider>
+              <ThreadProvider>
+                <StreamProvider>
+                  <ArtifactProvider>
+                    <NonAgentFlowProvider>
+                      <TabProvider>
+                        <ItineraryWidgetProvider>
+                          <div className="flex h-[100dvh] min-h-0 flex-col">
+                            <div className="min-h-0 flex-1 overflow-hidden">
+                              <TabsLayout />
+                            </div>
                           </div>
-                        </div>
-                      </ItineraryWidgetProvider>
-                    </TabProvider>
-                  </NonAgentFlowProvider>
-                </ArtifactProvider>
-              </StreamProvider>
-            </ThreadProvider>
+                        </ItineraryWidgetProvider>
+                      </TabProvider>
+                    </NonAgentFlowProvider>
+                  </ArtifactProvider>
+                </StreamProvider>
+              </ThreadProvider>
+            </PersonalizationProvider>
           </CurrencyDetectionProvider>
         </LocationProvider>
       </ProtectedRoute>
