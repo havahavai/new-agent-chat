@@ -5,7 +5,11 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ValidationWarningIcon } from "./ValidationWarningIcon";
 import { useTranslations } from "@/hooks/useTranslations";
-import { validateInput, filterEnglishEmail, filterValidPhone } from "@/utils/input-validation";
+import {
+  validateInput,
+  filterEnglishEmail,
+  filterValidPhone,
+} from "@/utils/input-validation";
 import type { ContactInformation, ValidationErrors } from "./types";
 
 interface ContactInformationCardProps {
@@ -26,7 +30,7 @@ export const ContactInformationCard: React.FC<ContactInformationCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Initialize translations
-  const { t } = useTranslations('reviewWidget');
+  const { t } = useTranslations("reviewWidget");
 
   // Check if contact section has validation errors
   const hasContactErrors = (): boolean => {
@@ -43,7 +47,7 @@ export const ContactInformationCard: React.FC<ContactInformationCardProps> = ({
           <div className="flex-1">
             <div className="flex items-center space-x-2">
               <h2 className="text-lg font-semibold">
-                {t('title.contactInformation')}
+                {t("title.contactInformation")}
               </h2>
               <ValidationWarningIcon show={hasContactErrors()} />
             </div>
@@ -73,7 +77,7 @@ export const ContactInformationCard: React.FC<ContactInformationCardProps> = ({
                   htmlFor="phone"
                   className="text-xs font-medium text-gray-700"
                 >
-                  {t('labels.phone')} *
+                  {t("labels.phone")} *
                 </Label>
                 <ValidationWarningIcon
                   show={validationErrors.phone}
@@ -94,7 +98,7 @@ export const ContactInformationCard: React.FC<ContactInformationCardProps> = ({
                 onKeyDown={(e) => {
                   // Prevent non-phone characters from being typed
                   if (e.key.length === 1) {
-                    const validation = validateInput(e.key, 'phone');
+                    const validation = validateInput(e.key, "phone");
                     if (!validation.isValid) {
                       e.preventDefault();
                     }
@@ -106,16 +110,15 @@ export const ContactInformationCard: React.FC<ContactInformationCardProps> = ({
                     ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                     : "",
                 )}
-                placeholder={t('placeholders.phone')}
+                placeholder={t("placeholders.phone")}
               />
               {/* Reserve space for error message to maintain alignment */}
               <div className="mt-1 h-4">
                 {validationErrors.phone && (
                   <p className="text-xs text-red-500">
-                    {!validateInput(contact.phone, 'phone').isValid
+                    {!validateInput(contact.phone, "phone").isValid
                       ? "Only numbers and phone symbols allowed"
-                      : t('validation.invalidPhone')
-                    }
+                      : t("validation.invalidPhone")}
                   </p>
                 )}
               </div>
@@ -128,7 +131,7 @@ export const ContactInformationCard: React.FC<ContactInformationCardProps> = ({
                   htmlFor="email"
                   className="text-xs font-medium text-gray-700"
                 >
-                  {t('labels.email')} *
+                  {t("labels.email")} *
                 </Label>
                 <ValidationWarningIcon
                   show={validationErrors.email}
@@ -147,10 +150,10 @@ export const ContactInformationCard: React.FC<ContactInformationCardProps> = ({
                   onValidateEmail(filteredValue);
                 }}
                 onKeyDown={(e) => {
-                  // Prevent non-English characters from being typed
+                  // Allow only characters valid in emails; don't enforce full email format per keystroke
                   if (e.key.length === 1) {
-                    const validation = validateInput(e.key, 'email');
-                    if (!validation.isValid) {
+                    const isAllowed = /^[a-zA-Z0-9._%+-@]$/.test(e.key);
+                    if (!isAllowed) {
                       e.preventDefault();
                     }
                   }
@@ -161,16 +164,15 @@ export const ContactInformationCard: React.FC<ContactInformationCardProps> = ({
                     ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                     : "",
                 )}
-                placeholder={t('placeholders.email')}
+                placeholder={t("placeholders.email")}
               />
               {/* Reserve space for error message to maintain alignment */}
               <div className="mt-1 h-4">
                 {validationErrors.email && (
                   <p className="text-xs text-red-500">
-                    {!validateInput(contact.email, 'email').isValid
+                    {!validateInput(contact.email, "email").isValid
                       ? "Only English characters allowed"
-                      : t('validation.invalidEmail')
-                    }
+                      : t("validation.invalidEmail")}
                   </p>
                 )}
               </div>
@@ -179,7 +181,7 @@ export const ContactInformationCard: React.FC<ContactInformationCardProps> = ({
 
           <div className="mt-4 border-t pt-3">
             <p className="text-xs text-gray-600">
-              {t('messages.bookingConfirmationMessage')}
+              {t("messages.bookingConfirmationMessage")}
             </p>
           </div>
         </div>
