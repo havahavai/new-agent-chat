@@ -66,6 +66,8 @@ export async function fetchPersonalizationData(
       queryParams.append("language", "ar");
     }
 
+    queryParams.append("isQuickTabsRequired", "true");
+
     // Construct the full URL with query parameters
     const url = queryParams.toString()
       ? `${PERSONALIZATION_API_URL}?${queryParams.toString()}`
