@@ -477,7 +477,7 @@ function FlightOptionsContent(args: FlightOptionsProps) {
                     className="h-[calc(100%-0.05rem)] min-w-0 flex-1 basis-0 truncate rounded-lg py-0 text-center leading-none"
                     value="best"
                   >
-                    {t("tabs.best", "Recommended")}
+                    {t("tabs.best", "Best")}
                   </TabsTrigger>
                 )}
                 {cheapestFlight && (
