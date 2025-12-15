@@ -20,6 +20,7 @@ import { useThreads } from "./Thread";
 import { toast } from "sonner";
 import { storeThread } from "@/utils/thread-storage";
 import { InterruptPersistenceProvider } from "./InterruptPersistenceContext";
+import { MaintenanceScreen } from "@/components/maintenance-screen";
 
 export type StateType = {
   messages: Message[];
@@ -68,6 +69,8 @@ const StreamSession = ({
   assistantId: string;
 }) => {
   const [threadId, setThreadId] = useQueryState("threadId");
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   const { getThreads, setThreads } = useThreads();
   const streamValue = useTypedStream({
     apiUrl,
@@ -109,6 +112,7 @@ const StreamSession = ({
 
   useEffect(() => {
     checkGraphStatus(apiUrl, apiKey).then((ok) => {
+      setIsMaintenanceMode(!ok);
       if (!ok) {
         toast.error("Failed to connect to LangGraph server", {
           description: () => (
@@ -124,6 +128,23 @@ const StreamSession = ({
       }
     });
   }, [apiKey, apiUrl]);
+
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    const ok = await checkGraphStatus(apiUrl, apiKey);
+    setIsMaintenanceMode(!ok);
+    setIsRetrying(false);
+    
+    if (ok) {
+      toast.success("Connected to server");
+    } else {
+      toast.error("Still unable to connect");
+    }
+  };
+
+  if (isMaintenanceMode) {
+    return <MaintenanceScreen onRetry={handleRetry} isRetrying={isRetrying} />;
+  }
 
   return (
     <InterruptPersistenceProvider>
