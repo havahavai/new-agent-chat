@@ -5,6 +5,7 @@ const nextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  turbopack: {},
   compiler: {
     removeConsole:
       process.env.NODE_ENV === 'production' ? { exclude: ['error'] } : false,
