@@ -69,7 +69,8 @@ const StreamSession = ({
   assistantId: string;
 }) => {
   const [threadId, setThreadId] = useQueryState("threadId");
-  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+  // TEMPORARY: Force maintenance mode to show maintenance screen directly
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(true);
   const [isRetrying, setIsRetrying] = useState(false);
   const { getThreads, setThreads } = useThreads();
   const streamValue = useTypedStream({
@@ -110,31 +111,32 @@ const StreamSession = ({
     },
   });
 
-  useEffect(() => {
-    checkGraphStatus(apiUrl, apiKey).then((ok) => {
-      setIsMaintenanceMode(!ok);
-      if (!ok) {
-        toast.error("Failed to connect to LangGraph server", {
-          description: () => (
-            <p>
-              Please ensure your graph is running at <code>{apiUrl}</code> and
-              your API key is correctly set (if connecting to a deployed graph).
-            </p>
-          ),
-          duration: 10000,
-          richColors: true,
-          closeButton: true,
-        });
-      }
-    });
-  }, [apiKey, apiUrl]);
+  // TEMPORARY: Disabled connection check to show maintenance screen directly
+  // useEffect(() => {
+  //   checkGraphStatus(apiUrl, apiKey).then((ok) => {
+  //     setIsMaintenanceMode(!ok);
+  //     if (!ok) {
+  //       toast.error("Failed to connect to LangGraph server", {
+  //         description: () => (
+  //           <p>
+  //             Please ensure your graph is running at <code>{apiUrl}</code> and
+  //             your API key is correctly set (if connecting to a deployed graph).
+  //           </p>
+  //         ),
+  //         duration: 10000,
+  //         richColors: true,
+  //         closeButton: true,
+  //       });
+  //     }
+  //   });
+  // }, [apiKey, apiUrl]);
 
   const handleRetry = async () => {
     setIsRetrying(true);
     const ok = await checkGraphStatus(apiUrl, apiKey);
     setIsMaintenanceMode(!ok);
     setIsRetrying(false);
-    
+
     if (ok) {
       toast.success("Connected to server");
     } else {
@@ -143,7 +145,12 @@ const StreamSession = ({
   };
 
   if (isMaintenanceMode) {
-    return <MaintenanceScreen onRetry={handleRetry} isRetrying={isRetrying} />;
+    return (
+      <MaintenanceScreen
+        onRetry={handleRetry}
+        isRetrying={isRetrying}
+      />
+    );
   }
 
   return (
