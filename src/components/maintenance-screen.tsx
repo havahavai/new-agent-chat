@@ -1,7 +1,5 @@
 import React from "react";
 import { FlyoLogoSVG } from "@/components/icons/langgraph";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
 
 interface MaintenanceScreenProps {
   onRetry: () => void;
@@ -26,21 +24,6 @@ export const MaintenanceScreen: React.FC<MaintenanceScreenProps> = ({
         <p className="text-muted-foreground mb-8">
           Agent is grounded for scheduled maintenance. <br /> We'll be ready for takeoff shortly!
         </p>
-
-        <Button 
-          onClick={onRetry} 
-          disabled={isRetrying}
-          className="w-full sm:w-auto min-w-[140px]"
-        >
-          {isRetrying ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Checking...
-            </>
-          ) : (
-            "Try Again"
-          )}
-        </Button>
       </div>
     </div>
   );
